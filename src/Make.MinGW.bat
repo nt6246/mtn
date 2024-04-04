@@ -17,19 +17,19 @@ REM - Extract dirs/files using 7-zip
 REM       libgd-mingw-x64-master.2.1.1.219.nupkg\*.h => C:\mingw64\include
 REM       libgd-mingw-x64-master.2.1.1.219.nupkg\*.a => C:\mingw64\lib
 REM       libgd-mingw-x64-master.2.1.1.219.nupkg\*.dll => C:\mingw64\bin
-REM       ffmpeg-n4.3.1-221-gd08bcbffff-win64-lgpl-shared-4.3.zip\ffmpeg*\include => C:\mingw64\include
-REM       ffmpeg-n4.3.1-221-gd08bcbffff-win64-lgpl-shared-4.3.zip\ffmpeg*\lib => C:\mingw64\lib
-REM       ffmpeg-n4.3.1-221-gd08bcbffff-win64-lgpl-shared-4.3.zip\ffmpeg*\bin => C:\mingw64\bin
+REM       ffmpeg-n6.1-latest-win64-gpl-shared-6.1.zip\ffmpeg*\include => C:\mingw64\include
+REM       ffmpeg-n6.1-latest-win64-gpl-shared-6.1.zip\ffmpeg*\lib => C:\mingw64\lib
+REM       ffmpeg-n6.1-latest-win64-gpl-shared-6.1.zip\ffmpeg*\bin => C:\mingw64\bin
 REM - Verify you unzipped the files correctly.
 REM   If you unzipped correctly you should now see avcodec.h in C:\mingw64\include\libavcodec\avcodec.h
 REM
 REM    `-- C:
 REM        |`-- mingw64
 REM            |-- bin
-REM            |   |-- avcodec-58.dll
+REM            |   |-- avcodec-60.dll
 REM            |   |-- gcc.exe
 REM            |   |-- liblibgd.dll
-REM            |   `-- swscale-5.dll
+REM            |   `-- swscale-7.dll
 REM            |-- include
 REM            |   |-- gd.h
 REM            |   |-- gd_io.h
@@ -68,12 +68,12 @@ REM    - or copy dependent libraries from C:\mingw64\bin and place in the same f
 REM
 REM   dependent libraries are now located here:
 REM   (note: numbered suffix depends on FFmpeg version)
-REM     C:\mingw64\bin\avcodec-58.dll
-REM     C:\mingw64\bin\avformat-58.dll
-REM     C:\mingw64\bin\avfilter-8.dll
-REM     C:\mingw64\bin\avutil-56.dll
-REM     C:\mingw64\bin\swresample-3.dll
-REM     C:\mingw64\bin\swscale-5.dll
+REM     C:\mingw64\bin\avcodec-60.dll
+REM     C:\mingw64\bin\avformat-60.dll
+REM     C:\mingw64\bin\avfilter-9.dll
+REM     C:\mingw64\bin\avutil-58.dll
+REM     C:\mingw63\bin\swresample-3.dll
+REM     C:\mingw64\bin\swscale-7.dll
 REM     C:\mingw64\bin\liblibgd.dll
 
 set MINGWDIR=C:\mingw64
