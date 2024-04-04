@@ -768,8 +768,6 @@ int image_string_height(char *text, char *font, double size, gdFTStringExtra *fc
         return 0;
     }
 
-	dump_used_font(fcFlags);
-
 	return brect[3] - brect[7] + LIBGD_FONT_HEIGHT_CORRECTION;
 }
 
@@ -862,15 +860,12 @@ char *image_string(gdImagePtr ip,
 			av_log(NULL, AV_LOG_VERBOSE, "at line %d\n", __LINE__);
             return err;
 		}
-		dump_used_font(fcFlags);
     }
 
 	char *gdstrret = gdImageStringFTEx(ip, brect, gd_color, font, size, 0, x, y, text, fcFlags);
 
 	if(gdstrret)
 		av_log(NULL, AV_LOG_VERBOSE, "at line %d\n", __LINE__);
-	else
-		dump_used_font(fcFlags);
 
     return gdstrret;
 }
@@ -4491,16 +4486,28 @@ int main(int argc, char *argv[])
 
     /* gdFTUseFontConfig(1);  => no needed, using gdImageStringFTEx */
 	fcStrFlagsInfotext.flags  =
-	fcStrFlagsTimestamp.flags = gdFTEX_FONTPATHNAME | gdFTEX_RETURNFONTPATHNAME;
+	fcStrFlagsTimestamp.flags = gdFTEX_RETURNFONTPATHNAME;
 
-	if (!strcmp(gb_f_fontname, GB_F_FONTNAME)) {
-		fcStrFlagsInfotext.flags |= gdFTEX_FONTCONFIG;
-		fcStrFlagsInfotext.flags &= ~gdFTEX_FONTPATHNAME;
+	if (!strcmp(gb_f_fontname, GB_F_FONTNAME) || is_reg(gb_f_fontname)==0)
+	{
+	 	fcStrFlagsInfotext.flags |= gdFTEX_FONTCONFIG;
+		av_log(NULL, AV_LOG_VERBOSE, "Text info will be rendered with \"%s\" using FontConfig\n", gb_f_fontname);
 	}
-	if (!strcmp(gb_F_ts_fontname, GB_F_FONTNAME)) {
-		gb_F_ts_fontname = gb_f_fontname;
+	else
+	{
+	 	fcStrFlagsInfotext.flags |= gdFTEX_FONTPATHNAME;
+		av_log(NULL, AV_LOG_VERBOSE, "Text info will be rendered using \"%s\" file\n", gb_f_fontname);
+	}
 
-		fcStrFlagsTimestamp = fcStrFlagsInfotext;
+	if (!strcmp(gb_F_ts_fontname, GB_F_FONTNAME) || is_reg(gb_F_ts_fontname)==0)
+	{
+	 	fcStrFlagsTimestamp.flags |= gdFTEX_FONTCONFIG;
+		av_log(NULL, AV_LOG_VERBOSE, "Timestamp info will be rendered with \"%s\" using FontConfig\n", gb_F_ts_fontname);
+	}
+	else
+	{
+	 	fcStrFlagsTimestamp.flags |= gdFTEX_FONTPATHNAME;
+		av_log(NULL, AV_LOG_VERBOSE, "Text info will be rendered using \"%s\" file\n", gb_F_ts_fontname);
 	}
 
 

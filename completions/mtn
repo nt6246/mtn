@@ -2,7 +2,7 @@
 
 _movie_thumbnailer()
 {
-    local fclist
+    local fclist ialist
     local cur prev words cword
     _init_completion || return
 
@@ -10,11 +10,11 @@ _movie_thumbnailer()
         COMPREPLY=( $( compgen -W "--shadow --transparent --cover --vtt --options --filters --filter-color-primaries --tonemap" -- "$cur" ) )
     else
         case "$prev" in 
-        "-f") fclist=$(fc-list :fontformat=TrueType file | cut -d : -f1)
+        "-f") fclist=$(fc-list : file | cut -d : -f1)
              COMPREPLY=( $( compgen -W "$fclist" -- "$cur" ) )
             ;;
-        "-I") fclist="t o i"
-             COMPREPLY=( $( compgen -W "$fclist" -- "$cur" ) )
+        "-I") ialist="t o i"
+             COMPREPLY=( $( compgen -W "$ialist" -- "$cur" ) )
             ;;
         "-O") _filedir -d
             ;;

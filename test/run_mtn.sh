@@ -147,6 +147,10 @@ colouredecho  "===> WebVTT"
 tcdir webvtt
 run_mtn -c 4 -w 1280 -Ii --vtt=path_to_image/
 
+colouredecho  "===> FontConfig"
+tcdir fontconfig
+run_mtn -f "Nimbus Sans Narrow:style=Bold"
+
 colouredecho  "===> Filters"
 tcdir filters
 run_mtn --filters='split[main][tmp];[tmp]crop=iw/2:ih:0:0,hflip[flip];[main][flip]overlay=W/2:0'

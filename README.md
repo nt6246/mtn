@@ -3,9 +3,7 @@ Description
 
 Movie Thumbnailer (mtn) saves thumbnails (screenshots) of video files to image files (jpg, png, webp, avif).
 It uses FFmpeg's libavcodec as its engine, so it supports all popular codecs, e.g. h.265/hevc, h.264, mpeg1, mpeg2, mp4, vc1, wmv, xvid, divx...     
-mtn was originaly developed by tuit (tuitfun); though most of its magic is actually done
-by FFmpeg libraries. For documents, please see in the doc directory and wiki at 
-https://gitlab.com/movie_thumbnailer/mtn/wikis/home .
+For more information visit wiki at https://gitlab.com/movie_thumbnailer/mtn/wikis/home
 
 
 Dependency
@@ -37,7 +35,7 @@ make install
 From community repository
 -----------
 
-See [wiki](https://gitlab.com/movie_thumbnailer/mtn/wikis/home#install-from-community-repository) page
+See [wiki](https://gitlab.com/movie_thumbnailer/mtn/-/wikis/home#installation) page
 
 Getting build dependencies
 ==========================

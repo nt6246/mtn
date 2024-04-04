@@ -1,3 +1,6 @@
+version 3.5.1 	2024/04/04
+- enabled FontConfig: Font argument for -f and -F now works also with font names
+
 version 3.5.0 	2024/02/21
 - add filtering and tonemaping (--filters, --filter-color-primaries, --tonemap)
 - add -x switch to change output filename

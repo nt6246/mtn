@@ -1,9 +1,9 @@
 #compdef mtn
 # zsh shell completion for mtn (Movie Thumbnailer)
 
-_TTFfontlist()
+_FCfontlist()
 {
-	compadd $( fc-list :fontformat=TrueType file | cut -d : -f1 )
+	compadd $( fc-list : file | cut -d : -f1 )
 }
 
 _mtn()
@@ -17,7 +17,7 @@ _mtn()
 				'-D[Edge detection]'\
 				'-e[comma separated list of file extensions]'\
 				'-E[Omit seconds at the end]'\
-				'-f[TrueType font file]:fonts:_TTFfontlist'\
+				'-f[font file]:fonts:_FCfontlist'\
 				'-F[font format: RRGGBB:size\[:font:RRGGBB:RRGGBB:size\]]'\
 				'-g[Gap between each shot]'\
 				'-h[Minimum height of each shot]'\

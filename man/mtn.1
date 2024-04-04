@@ -1,9 +1,9 @@
 .\" Manpage for mtn.
 .\" Contact wahibre@gmx.com to correct errors or typos.
 
-.TH man 1 "Dec 2023" "1.10" "mtn man page"
+.TH man 1 "Apr 2024" "1.11" "mtn man page"
 .SH NAME
-mtn \- generate thumbnail grid of a movie file(s)
+mtn \- movie thumbnail generator for creating thumbnail grid of a movie file(s)
 .SH SYNOPSIS
 mtn [OPTIONS] FILENAME[, FILENAME, ...]
 .SH DESCRIPTION
@@ -19,7 +19,11 @@ Mtn saves thumbnails of specified movie files or directories to jpeg files.
   -D 12 : edge detection; 0:off >0:on; higher detects more; try -D4 -D6 or -D8
   -e : comma separated list of file extensions scaned in directories (e.g. mkv,avi,mp4)
   -E 0,0 : omit this seconds at the end
-  -f fontname.ttf : Truetype font file; use absolute path if not in usual places. If you don't have a truetype font, you can turn the text off by using -i -t. 
+  -f font : Font File or Font Name, see
+.BR fc-list (1)
+and 
+.BR fc-match (1)
+     e.g. "/usr/share/fonts/TTF/DejaVuSerif-BoldItalic.ttf" or "DejaVu Serif:style=Bold Italic"
   -F RRGGBB:size[:font:RRGGBB:RRGGBB:size] : font format [time is optional]
      info_color:info_size[:time_font:time_color:time_shadow:time_size]
   -g 0 : gap between each shot
@@ -97,15 +101,9 @@ uses filtegraph
 .IP FILENAME
 Name of the movie file or directory containing movie files
 
-.SH " "
-  You'll probably need to change the truetype font path (\fI-f\fP fontfile).
-  the default is set to tahomabd.ttf which might not exist in non-windows
-  systems. if you don't have a truetype font, you can turn the text off by
-  using \fI-i\fP \fI-t\fP.
-
 
 .SH EXIT STATUS
-  MTN exits  with status 0 if all files are processed successfully, 1 if some shots are missing, 2 on error.
+  MTN exits with status 0 if all files are processed successfully, 1 if some shots are missing, 2 on error.
 
 .SH EXAMPLES
   to save thumbnails to file infile_s.jpg with default options:
@@ -133,7 +131,9 @@ Name of the movie file or directory containing movie files
     
 .SH "SEE ALSO"
 .BR ffmpeg (1),
-.BR ffmpeg-filters (1)
+.BR ffmpeg-filters (1),
+.BR fc-list (1),
+.BR fc-match (1)
 
 .SH WWW
 https://gitlab.com/movie_thumbnailer/mtn/wikis
