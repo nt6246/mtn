@@ -475,6 +475,12 @@ char **strsplit(char *string, const char *delimiter)
     char **tmparr = NULL;
     int arrcnt = 0;
 
+	if(string == NULL)
+		return NULL;
+
+	if(delimiter == NULL)
+		return NULL;
+
     char *copy = strdup(string);
     char *tok = strtok(copy, delimiter);
 
@@ -487,7 +493,9 @@ char **strsplit(char *string, const char *delimiter)
         tok = strtok(NULL, delimiter);
     }
 
-    arr[arrcnt] = NULL;
+	if(arr != NULL)
+    	arr[arrcnt] = NULL;
+
     free(copy);
     return arr;
 }
@@ -3584,7 +3592,11 @@ return 1 if filename has one of the predefined extensions
 */
 int check_extension(char *filename)
 {
-    assert(movie_ext);
+    if(filename == NULL)
+		return 0;
+
+    if(movie_ext == NULL) // empty extension filter -> all files are valid
+		return 1;
 
     static int sorted = 0; // 1 = sorted
 
@@ -4097,7 +4109,7 @@ usage()
     av_log(NULL, AV_LOG_INFO, "  -D %d : edge detection; 0:off >0:on; higher detects more; try -D4 -D6 or -D8\n", gb_D_edge);
     av_log(NULL, AV_LOG_INFO, "  -e : comma separated list of file extensions\n");
     av_log(NULL, AV_LOG_INFO, "  -E %.1f : omit this seconds at the end\n", GB_E_END);
-    av_log(NULL, AV_LOG_INFO, "  -f %s : font file; use absolute path if not in usual places\n", GB_F_FONTNAME);
+    av_log(NULL, AV_LOG_INFO, "  -f %s : Font File or Font Name\n", GB_F_FONTNAME);
     av_log(NULL, AV_LOG_INFO, "  -F RRGGBB:size[:font:RRGGBB:RRGGBB:size] : font format [time is optional]\n     info_color:info_size[:time_font:time_color:time_shadow:time_size]\n");
     av_log(NULL, AV_LOG_INFO, "  -g %d : gap between each shot\n", GB_G_GAP);
     av_log(NULL, AV_LOG_INFO, "  -h %d : minimum height of each shot; will reduce # of column to fit\n", GB_H_HEIGHT);
