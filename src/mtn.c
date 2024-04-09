@@ -331,6 +331,7 @@ gdFTStringExtra fcStrFlagsTimestamp = {0};
 KeyCounter* kc_new()
 {
     KeyCounter *kc = (KeyCounter*)malloc(sizeof(KeyCounter));
+    assert(kc != NULL);
     kc->key=NULL;
     kc->count=0;
 
@@ -488,6 +489,7 @@ char **strsplit(char *string, const char *delimiter)
     {
         ++arrcnt;
         tmparr = realloc(arr, (arrcnt+1) * sizeof(char*));
+        assert(tmparr != NULL);
         arr = tmparr;
         arr[arrcnt-1] = strdup(tok);
         tok = strtok(NULL, delimiter);
@@ -564,7 +566,7 @@ char *format_size(int64_t size)
  */
 char *format_size_f(int64_t size)
 {
-    char *buf = NULL;
+    char *buf = NULL, *tmpbuf;
     int bufflength;
     int needToPrint = 20;
     char unit[]="b";
@@ -572,7 +574,9 @@ char *format_size_f(int64_t size)
     do
     {
         bufflength = needToPrint+1;
-        buf = realloc(buf, bufflength);
+        tmpbuf = realloc(buf, bufflength);
+        assert(tmpbuf);
+        buf = tmpbuf;
 
         if (size < 1200) {
             needToPrint = snprintf(buf, bufflength,"%"PRId64" %s", size, unit);
@@ -2602,6 +2606,7 @@ make_thumbnail(char *file)
         }
 
         tn.filenamebase = (char*)malloc((strlen(filenamebase)+1) * sizeof(char));
+        assert(tn.filenamebase != NULL);
         strcpy(tn.filenamebase, filenamebase);
 
         strcpy(tn.out_filename, filenamebase);
@@ -3714,6 +3719,8 @@ int process_dir(char *dir, int current_depth)
         v[cnt++] = vnew;
         //av_log(NULL, AV_LOG_INFO, "process_dir added: %s\n", v[cnt-1]); // DEBUG
     }
+
+    assert(v != NULL);
     qsort(v, cnt, sizeof(*v), myalphasort);
 
     /* process dirs & files */

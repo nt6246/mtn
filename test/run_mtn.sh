@@ -149,7 +149,7 @@ run_mtn -c 4 -w 1280 -Ii --vtt=path_to_image/
 
 colouredecho  "===> FontConfig"
 tcdir fontconfig
-run_mtn -f "Nimbus Sans Narrow:style=Bold"
+run_mtn -f "NimbusRoman-Regular:style=Italic"
 
 colouredecho  "===> Filters"
 tcdir filters
