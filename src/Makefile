@@ -1,5 +1,4 @@
 #CFLAGS=-W -Wall -O3 -s -D_FILE_OFFSET_BITS=64 -mtune=i686 -march=i386 -I/home/tuitfun/include -L/home/tuitfun/lib
-#CFLAGS=-W -Wall `pkg-config --cflags libavformat`
 
 # The DESTDIR is macro is used for staged builds, so that it gets installed
 # under a fake root directory for the sake of packaging. Unlike PREFIX, it will
@@ -11,12 +10,14 @@ PREFIX = /usr/local
 
 ENABLE_AVIF=1
 ENABLE_WEBP=1
+ENABLE_LOCALE=0
 
 KERNELNAME=$(shell uname -s)
 OSNAME=$(shell uname -o)
 CFLAGS=-W -Wall $(USER_CFLAGS)
 OUT=../bin
 LIBSDIR=../lib
+LOCALEDIR=\"/usr/share/locale\"
 
 ifeq ($(KERNELNAME),FreeBSD)
 LIBS+=-L/usr/local/lib
@@ -42,6 +43,10 @@ ifeq ($(ENABLE_AVIF),1)
     CFLAGS+=-DMTN_WITH_AVIF
 endif
 
+ifeq ($(ENABLE_LOCALE),1)
+    CFLAGS+=-DMTN_WITH_LOCALE -DLOCALEDIR=$(LOCALEDIR)
+endif
+
 LIBS+=-lavcodec -lavformat -lavcodec -lswscale -lavutil -lavfilter -lgd -lm
 S_INCPATH=-I$(LIBSDIR)/FFmpeg -I$(LIBSDIR)/libgd/src
 S_LIBS= -static-libgcc -static \
@@ -55,16 +60,18 @@ S_LIBS= -static-libgcc -static \
 	$(LIBSDIR)/libgd/Bin/libgd.a \
     -lpthread -lbz2 -lfontconfig -lfreetype -lbrotlidec -lbrotlicommon -lexpat -ljpeg -lpng16 -lwebp -lz -lzimg -lm -lstdc++
 
-mtn: mtn.c outdir
-	$(CC) -o $(OUT)/mtn mtn.c $(INCPATH) $(CFLAGS) -O3 $(LIBS)
+build: $(OUT)/mtn
 
-outdir:
-	mkdir -p $(OUT)
+$(OUT)/mtn: mtn.c $(OUT)
+	$(CC) -o $@ mtn.c $(INCPATH) $(CFLAGS) -O3 $(LIBS)
 
-static: mtn.c outdir
+$(OUT):
+	mkdir -p $@
+
+static: mtn.c $(OUT)
 	$(CC) -o $(OUT)/mtn mtn.c $(S_INCPATH) $(CFLAGS) $(S_LIBS) -DMTN_STATIC
 
-debug: mtn.c outdir
+debug: mtn.c $(OUT)
 	$(CC) -o $(OUT)/mtn mtn.c $(INCPATH) $(CFLAGS) -fanalyzer -g -DDEBUG $(LIBS)
 
 clean:
@@ -73,15 +80,21 @@ clean:
 distclean:
 	rm -rf $(OUT)
 
-rebuild:  clean mtn
+rebuild:  clean build
 rebuild_static: clean static
+
+../po/mtn.pot: mtn.c
+	xgettext -d mtn -k__ -o $@ mtn.c
+
+locale: build ../po/mtn.pot
+	msgmerge --update --no-fuzzy-matching --backup=none --lang=$(LANG) ../po/$(LANG).po ../po/mtn.pot
 
 test_bin:
 	$(OUT)/mtn -f ../test/font.ttf -h 50 -O /tmp /home/sample.avi
 	test -s /tmp/sample_s.jpg
 
-test:  rebuild  mtn  test_bin
-static_test: rebuild_static static test_bin
+test:  rebuild  test_bin
+static_test: rebuild_static test_bin
 
 install:
 	mkdir -p $(DESTDIR)$(PREFIX)/bin/

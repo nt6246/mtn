@@ -53,6 +53,9 @@
 #include <time.h>
 #include <unistd.h>
 #include <getopt.h>
+#ifdef MTN_WITH_LOCALE
+#include <libintl.h>
+#endif
 
 #include "libavutil/imgutils.h"
 #include "libavutil/avutil.h"
@@ -126,6 +129,7 @@ typedef struct rgb_color
 } rgb_color;
 typedef char color_str[7]; // "RRGGBB" (in hex)
 
+#define PROJNAME "mtn"
 #define COLOR_BLACK (rgb_color){0, 0, 0}
 #define COLOR_GREY (rgb_color){128, 128, 128}
 #define COLOR_WHITE (rgb_color){255, 255, 255}
@@ -149,6 +153,12 @@ const char* const FILTER_GRAPHS[] = {
  #define FOLDER_SEPARATOR "\\"
 #else
  #define FOLDER_SEPARATOR "/"
+#endif
+
+#ifdef MTN_WITH_LOCALE
+    #define __(msg) gettext(msg)
+#else
+    #define __(msg) msg
 #endif
 
 typedef struct thumbnail
@@ -1008,7 +1018,7 @@ void sprite_fit(pSprite s)
 {
     if(s->nr_of_shots > 0 && s->nr_of_shots < s->columns*s->rows)
     {
-        int rows = s->nr_of_shots/s->columns;
+        int rows = s->nr_of_shots / s->columns;
         int cols = s->nr_of_shots % s->columns;
 
         if(cols > 0)
@@ -1055,7 +1065,7 @@ void sprite_add_shot(pSprite s, gdImagePtr ip, int64_t pts)
 {
     int very_first_shot = (s->nr_of_shots==0 && s->curr_file_idx==0)? 1 : 0;
 
-    int rows_used = s->nr_of_shots/s->columns;
+    int rows_used = s->nr_of_shots / s->columns;
     int cols_used = s->nr_of_shots - (rows_used*s->columns);
 
     int posY = rows_used * s->h;
@@ -1680,7 +1690,7 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
         strcat(buf, NEWLINE);
 
         if (gb_v_verbose > 0) {
-            sprintf(buf + strlen(buf), "Stream %d", i);
+            sprintf(buf + strlen(buf), "%s %d", __("Stream"), i);
             if (flags & AVFMT_SHOW_IDS) {
                 sprintf(buf + strlen(buf), "[0x%x]", st->id);
             }
@@ -1745,7 +1755,7 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
 
     {
         if (0 < strlen(sub_buf) || 0 < kc->count)
-            strcat(buf, "\nSubtitles: ");
+            sprintf(buf + strlen(buf), "\n%s: ", __("Subtitles"));
 
         if (0 < strlen(sub_buf))
         {
@@ -1786,16 +1796,19 @@ char *get_stream_info(AVFormatContext *ic, char *url, int strip_path, AVRational
 
     int64_t file_size = avio_size(ic->pb);
 
-    sprintf(buf, "File: %s", file_name);
+    sprintf(buf, "%s: %s", __("File"), file_name);
     /* file format
     sprintf(buf + strlen(buf), " (%s)", ic->iformat->name);*/
+    
+    char* size_lc = __("Size");
+
 
     if(gb_H_human_filesize)
         /* File size only in MiB, GiB, ... */
-        sprintf(buf + strlen(buf), "%sSize: %s", NEWLINE, format_size(file_size));
+        sprintf(buf + strlen(buf), "%s%s: %s", NEWLINE, size_lc, format_size(file_size));
     else
         /* File size i bytes and MiB */
-        sprintf(buf + strlen(buf), "%sSize: %"PRId64" bytes (%s)", NEWLINE, file_size, format_size(file_size));
+        sprintf(buf + strlen(buf), "%s%s: %"PRId64" %s (%s)", NEWLINE, size_lc, file_size, __("bytes"), format_size(file_size));
 
 
     if (ic->duration != AV_NOPTS_VALUE) {
@@ -1805,9 +1818,9 @@ char *get_stream_info(AVFormatContext *ic, char *url, int strip_path, AVRational
         secs %= 60;
         hours = mins / 60;
         mins %= 60;
-        sprintf(buf + strlen(buf), ", duration: %02d:%02d:%02d", hours, mins, secs);
+        sprintf(buf + strlen(buf), ", %s: %02d:%02d:%02d", __("duration"), hours, mins, secs);
     } else {
-        sprintf(buf + strlen(buf), ", duration: N/A");
+        sprintf(buf + strlen(buf), ", %s", __("duration: N/A"));
     }
     /*
     if (ic->start_time != AV_NOPTS_VALUE) {
@@ -1864,21 +1877,21 @@ void dump_format_context(AVFormatContext *p, int __attribute__((unused)) index, 
     AVDictionaryEntry* genre    = av_dict_get(p->metadata, "genre",     NULL, 0);
 
     if (track != NULL)
-        av_log(NULL, AV_LOG_INFO, "  Track: %s\n",     track->value);
+        av_log(NULL, AV_LOG_INFO, "  %s: %s\n", __("Track"),     track->value);
     if (title != NULL)
-        av_log(NULL, AV_LOG_INFO, "  Title: %s\n",     title->value);
+        av_log(NULL, AV_LOG_INFO, "  %s: %s\n", __("Title"),     title->value);
     if (author != NULL)
-        av_log(NULL, AV_LOG_INFO, "  Author: %s\n",    author->value);
+        av_log(NULL, AV_LOG_INFO, "  %s: %s\n", __("Author"),    author->value);
     if (copyright != NULL)
-        av_log(NULL, AV_LOG_INFO, "  Copyright: %s\n", copyright->value);
+        av_log(NULL, AV_LOG_INFO, "  %s: %s\n", __("Copyright"), copyright->value);
     if (comment != NULL)
-        av_log(NULL, AV_LOG_INFO, "  Comment: %s\n",   comment->value);
+        av_log(NULL, AV_LOG_INFO, "  %s: %s\n", __("Comment"),   comment->value);
     if (album != NULL)
-        av_log(NULL, AV_LOG_INFO, "  Album: %s\n",     album->value);
+        av_log(NULL, AV_LOG_INFO, "  %s: %s\n", __("Album"),     album->value);
     if (year != NULL)
-        av_log(NULL, AV_LOG_INFO, "  Year: %s\n",      year->value);
+        av_log(NULL, AV_LOG_INFO, "  %s: %s\n", __("Year"),      year->value);
     if (genre != NULL)
-        av_log(NULL, AV_LOG_INFO, "  Genre: %s\n",     genre->value);
+        av_log(NULL, AV_LOG_INFO, "  %s: %s\n", __("Genre"),     genre->value);
 }
 
 void dump_frame(AVFrame *f)
@@ -2678,7 +2691,7 @@ make_thumbnail(char *file)
 //        goto cleanup;
 //    }
     if (NULL != gb_N_suffix) {
-        av_log(NULL, AV_LOG_INFO, "\nCreating info file %s\n", tn.info_filename);
+        av_log(NULL, AV_LOG_INFO, "\n%s: %s\n", __("Info file"), tn.info_filename);
         info_fp = _tfopen(info_filename_w, _TEXT("wb"));
         if (NULL == info_fp) {
             av_log(NULL, AV_LOG_ERROR, "\n%s: creating info file '%s' failed: %s\n", gb_argv0, tn.info_filename, strerror(errno));
@@ -2726,7 +2739,7 @@ make_thumbnail(char *file)
         goto cleanup;
 
     if((tn.rotation = get_stream_rotation(pStream)) != 0)
-        av_log(NULL, AV_LOG_INFO,  "  Rotation: %d degrees%s", tn.rotation, NEWLINE);
+        av_log(NULL, AV_LOG_INFO,  "  %s: %d°%s", __("Rotation"), tn.rotation, NEWLINE);
 
     dump_stream(pStream);
     //dump_index_entries(pStream);
@@ -3027,8 +3040,12 @@ make_thumbnail(char *file)
     tn.img_height = tn.shot_height_out*tn.row + gb_g_gap*(tn.row+1) + tn.txt_height;
 
     char* extra_info_text = NULL;
-    sprintf_realloc(&extra_info_text, 0, "Tiles: step: %.1f s; # tiles: %dx%d, tile size: %dx%d; total size: %dx%d",
-		tn.step_t*tn.time_base, tn.column, tn.row, tn.shot_width_out, tn.shot_height_out, tn.img_width, tn.img_height);
+    sprintf_realloc(&extra_info_text, 0, "%s: %s %.1f s, %s: %dx%d, %s: %dx%d; %s: %dx%d", 
+        __("Tiles"), 
+        __("step"), tn.step_t*tn.time_base, 
+        __("grid"), tn.column, tn.row, 
+        __("tile size"), tn.shot_width_out, tn.shot_height_out, 
+        __("total size"), tn.img_width, tn.img_height);
 
     av_log(NULL, AV_LOG_INFO, "%s%s", extra_info_text, NEWLINE);
 
@@ -3527,8 +3544,8 @@ make_thumbnail(char *file)
     double diff_time = (tfinish.tv_sec + tfinish.tv_usec/1000000.0) - (tstart.tv_sec + tstart.tv_usec/1000000.0);
     // previous version reported # of decoded shots/s; now we report the # of final shots/s
     //av_log(NULL, AV_LOG_INFO, "  avg. %.2f shots/s; output file: %s\n", nb_shots / diff_time, tn.out_filename);
-    av_log(NULL, AV_LOG_INFO, "  %.2f s, %.2f shots/s; output: %s\n",
-        diff_time, (tn.idx + 1) / diff_time, tn.out_filename);
+    av_log(NULL, AV_LOG_INFO, "  %.2f s, %.2f %s, %s: %s\n",
+        diff_time, (tn.idx + 1) / diff_time, __("shots/s"), __("output"), tn.out_filename);
 
     if(tn.tiles_nr == (tn.row * tn.column))
         return_code = 0;        // everything is fine
@@ -4206,8 +4223,6 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    av_log(NULL, AV_LOG_VERBOSE, "locale: %s\n", setlocale(LC_ALL, ""));
-
     /* get & check options */
 
 
@@ -4601,6 +4616,13 @@ int main(int argc, char *argv[])
 
 	// display mtn+libraries versions for bug reporting
 	av_log(NULL, AV_LOG_VERBOSE, "%s\n\n", mtn_identification());
+
+
+    av_log(NULL, AV_LOG_VERBOSE, "locale lang:   %s\n", setlocale(LC_ALL, ""));
+    #ifdef MTN_WITH_LOCALE
+    av_log(NULL, AV_LOG_VERBOSE, "locale dir:    %s\n", bindtextdomain(PROJNAME, LOCALEDIR));
+    av_log(NULL, AV_LOG_VERBOSE, "locale domain: %s\n", textdomain(PROJNAME));
+    #endif
 
     /* process movie files */
     return_code = process_loop(argc - optind, argv + optind, 0);

@@ -98,17 +98,17 @@ pacman -Sy
 pacman -S mingw-w64-x86_64-make mingw-w64-x86_64-gcc mingw-w64-x86_64-ffmpeg mingw-w64-x86_64-libgd
 # build mtn
 mingw32-make.exe
-
 ```
 (more information in [wiki](https://gitlab.com/movie_thumbnailer/mtn/-/wikis/Building-on-Windows))
 
 macOS [(brew)](https://brew.sh/)
 =====
 
-
+<!--
 If you don't want to contribute please refer to the installation guide
 [here](https://gitlab.com/movie_thumbnailer/mtn/wikis/home#macos)
 instead.
+-->
 
 ```sh
 brew install ffmpeg libgd
