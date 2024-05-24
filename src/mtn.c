@@ -3034,7 +3034,7 @@ make_thumbnail(char *file)
 	{
         tn.txt_height = image_string_height(all_text, gb_f_fontname, gb_F_info_font_size, &fcStrFlagsInfotext)
 						+ gb_g_gap
-						+ info_text_padding;
+						+ 2*info_text_padding;
 	}
 
     tn.img_height = tn.shot_height_out*tn.row + gb_g_gap*(tn.row+1) + tn.txt_height;
