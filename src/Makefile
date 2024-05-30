@@ -24,6 +24,11 @@ LIBS+=-L/usr/local/lib
 INCPATH+=-I/usr/local/include
 endif
 
+ifeq ($(OSNAME),Darwin)
+INCPATH=$(shell pkg-config --cflags-only-I gdlib libavutil)
+LIBS+=$(shell pkg-config --libs-only-L gdlib libavutil)
+endif
+
 ifeq ($(KERNELNAME),Linux)
 INCPATH=-I/usr/include/ffmpeg
 LIBS+=$(shell pkg-config --libs-only-L libavutil)
