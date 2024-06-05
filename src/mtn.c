@@ -3950,13 +3950,39 @@ int get_format_opt(char c, char *optarg)
         return ret;
     }
 
-    const char *delim = ":";
+    const char *delim = "\1";
+    const char opt_delimiter = ':';
+    const char safe_delimiter = delim[0];
+    char substr_protector = 0;
+    short substr_protected = 0;
+
+    // change delimiter for a safe one to be able detect windows drive letter 
+    // in filepath (e.g. C:\path\to\.ttf)
+    for(size_t i=0; i<strlen(optarg); i++)
+    {
+		if(!substr_protected)
+		{
+			if(optarg[i] == '"' || optarg[i] == '`' || optarg[i] == '\'')
+			{
+				substr_protector = optarg[i];
+				substr_protected = !substr_protected;
+				continue;
+			}
+
+			if(optarg[i] == opt_delimiter)
+				optarg[i] = safe_delimiter;
+		}
+		
+		if(substr_protected && optarg[i] == substr_protector)
+				substr_protected = !substr_protected;
+    }
 
     // info text font color
     char *token = strtok(optarg, delim);
     if (NULL == token || -1 == parse_color(&gb_F_info_color, token)) {
         goto cleanup;
     }
+
     // info text font size
     token = strtok (NULL, delim);
     if (NULL == token) {
@@ -3975,7 +4001,18 @@ int get_format_opt(char c, char *optarg)
         gb_F_ts_font_size = gb_F_info_font_size - 1;
         goto cleanup;
     }
-    gb_F_ts_fontname = token;
+    
+    if(token[0] == substr_protector)
+    {
+        char *newtsfont = strdup(token);
+        size_t fsize = strlen(token);
+        memset(newtsfont, 0, fsize+1);
+        strncpy(newtsfont, token+1, fsize-2);
+        gb_F_ts_fontname = newtsfont;
+    }
+    else
+		gb_F_ts_fontname = token;
+    
     // time stamp font color
     token = strtok (NULL, delim);
     if (NULL == token || -1 == parse_color(&gb_F_ts_color , token)) {

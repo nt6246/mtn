@@ -19,13 +19,19 @@ Mtn saves thumbnails of specified movie files or directories to jpeg files.
   -D 12 : edge detection; 0:off >0:on; higher detects more; try -D4 -D6 or -D8
   -e : comma separated list of file extensions scaned in directories (e.g. mkv,avi,mp4)
   -E 0,0 : omit this seconds at the end
-  -f font : Font File or Font Name, see
+
+  -f font
+    Font File or Font Name, see
 .BR fc-list (1)
 and 
 .BR fc-match (1)
-     e.g. "/usr/share/fonts/TTF/DejaVuSerif-BoldItalic.ttf" or "DejaVu Serif:style=Bold Italic"
-  -F RRGGBB:size[:font:RRGGBB:RRGGBB:size] : font format [time is optional]
-     info_color:info_size[:time_font:time_color:time_shadow:time_size]
+    e.g. "/usr/share/fonts/TTF/DejaVuSerif-BoldItalic.ttf" 
+      or "DejaVu Serif:style=Bold Italic"
+
+  -F RRGGBB:size[:font:RRGGBB:RRGGBB:size]
+    Font formating: info_color:info_size[:time_font:time_color:time_shadow:time_size].
+    Note that the time_font cotaining ':' (e.g. C:\...\font.ttt) has to be surrounded by ", ' or `.
+
   -g 0 : gap between each shot
   -h 150 : minimum height of each shot; will reduce # of column to fit
   -H : filesize only in human readable format (MiB, GiB). Default shows size in bytes too

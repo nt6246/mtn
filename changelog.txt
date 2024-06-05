@@ -1,6 +1,7 @@
-version 3.5.1 	2024/05/24
+version NEXT
 - enabled FontConfig: Font argument for -f and -F now works also with font names
 - add missing gap between info text and thumbnails
+- fix parsing option -F when fontpath contains ':'
 
 version 3.5.0 	2024/02/21
 - add filtering and tonemaping (--filters, --filter-color-primaries, --tonemap)
