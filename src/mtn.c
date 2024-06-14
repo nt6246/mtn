@@ -1765,12 +1765,12 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
                 strcat(buf, ", ");
         }
 
-        int i;
-        for(i=0; i < kc->count; i++) {
+        int idx;
+        for(idx=0; idx < kc->count; idx++) {
             if(kc->count > 1)
-                sprintf(buf + strlen(buf), "%s (%dx)", kc->key[i].name, kc->key[i].count);
+                sprintf(buf + strlen(buf), "%s (%dx)", kc->key[idx].name, kc->key[idx].count);
             else
-                sprintf(buf + strlen(buf), "%s", kc->key[i].name);
+                sprintf(buf + strlen(buf), "%s", kc->key[idx].name);
         }
     }
 
@@ -2638,19 +2638,19 @@ make_thumbnail(char *file)
         }
     }
 
-    char *suffix;
-
 	// idenfity thumbnail image extension
-	char image_extension[6];
-	suffix = strrchr(tn.out_filename, '.');
-	if(suffix && (
-				strcasecmp(suffix, IMAGE_EXTENSION_PNG)==0 ||
-				strcasecmp(suffix, IMAGE_EXTENSION_WEBP)==0 ||
-				strcasecmp(suffix, IMAGE_EXTENSION_AVIF)==0
-				))
-		strcpy(image_extension, suffix);
-	else
-		strcpy(image_extension, IMAGE_EXTENSION_JPG);
+    char image_extension[6];
+    {
+        char *suffix = strrchr(tn.out_filename, '.');
+        if(suffix && (
+                    strcasecmp(suffix, IMAGE_EXTENSION_PNG)==0 ||
+                    strcasecmp(suffix, IMAGE_EXTENSION_WEBP)==0 ||
+                    strcasecmp(suffix, IMAGE_EXTENSION_AVIF)==0
+                    ))
+            strcpy(image_extension, suffix);
+        else
+            strcpy(image_extension, IMAGE_EXTENSION_JPG);
+    }
 
 
     // if output files exist and modified time >= program start time,
@@ -2794,7 +2794,6 @@ make_thumbnail(char *file)
         av_log(NULL, AV_LOG_VERBOSE, "Initializing filtergraph\n");
 
         char args[512];
-        int ret = 0;
         const AVFilter *buffersrc  = avfilter_get_by_name("buffer");
         const AVFilter *buffersink = avfilter_get_by_name("buffersink");
         AVFilterInOut* inputs = avfilter_inout_alloc();
@@ -3305,7 +3304,7 @@ make_thumbnail(char *file)
             {
                  /* pull filtered frames from the filtergraph */
                  while (1) {
-                     int ret = av_buffersink_get_frame(buffersink_ctx, filt_frame);
+                     ret = av_buffersink_get_frame(buffersink_ctx, filt_frame);
                      if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
                          break;
                      if (ret >= 0)
@@ -3374,7 +3373,7 @@ make_thumbnail(char *file)
             }
 
             // not found -- skip shot
-            TIME_STR time_tmp;
+            time_tmp[0] = '\0';
             format_time(calc_time(seek_target, pStream->time_base, start_time), time_tmp, ':');
             av_log(NULL, AV_LOG_INFO, "  * blank %.2f or no edge * skipping shot at %s after %d tries\n", blank, time_tmp, evade_try);
             thumb_nb--; // reduce # shots
@@ -3958,7 +3957,8 @@ int get_format_opt(char c, char *optarg)
 
     // change delimiter for a safe one to be able detect windows drive letter 
     // in filepath (e.g. C:\path\to\.ttf)
-    for(size_t i=0; i<strlen(optarg); i++)
+    size_t i;
+    for(i=0; i<strlen(optarg); i++)
     {
 		if(!substr_protected)
 		{

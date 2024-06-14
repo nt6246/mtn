@@ -14,7 +14,7 @@ ENABLE_LOCALE=0
 
 KERNELNAME=$(shell uname -s)
 OSNAME=$(shell uname -o)
-CFLAGS=-W -Wall $(USER_CFLAGS)
+CFLAGS=-W -Wall -Wextra -Wshadow -Wunreachable-code -Wcast-align -Wuninitialized $(USER_CFLAGS)
 OUT=../bin
 LIBSDIR=../lib
 LOCALEDIR=\"/usr/share/locale\"
