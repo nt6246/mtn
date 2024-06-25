@@ -106,6 +106,14 @@
 #ifndef MAX
 #define MAX(a,b) ((a)<(b)?(b):(a))
 #endif
+  
+#ifdef _WIN32                                                                                                                                                                                                  
+#define TEXT_WRITE_MODE   _TEXT("wt")                                                                                                                                                                         
+#define BINARY_WRITE_MODE _TEXT("wb")                                                                                                                                                                         
+#else                                                                                                                                                                                                          
+#define TEXT_WRITE_MODE   "w"                                                                                                                                                                              
+#define BINARY_WRITE_MODE "w"                                                                                                                                                                              
+#endif                                                                                                                                                                                                         
 
 // newline character for info file
 #ifdef WIN32
@@ -116,6 +124,7 @@
 
 #define EDGE_PARTS 6 // # of parts used in edge detection
 #define EDGE_FOUND 0.001f // edge is considered found
+#define CMP_EDGE 208
 
 int process_loop(int n, char **files, int current_depth);
 
@@ -131,7 +140,6 @@ typedef char color_str[7]; // "RRGGBB" (in hex)
 
 #define PROJNAME "mtn"
 #define COLOR_BLACK (rgb_color){0, 0, 0}
-#define COLOR_GREY (rgb_color){128, 128, 128}
 #define COLOR_WHITE (rgb_color){255, 255, 255}
 #define COLOR_INFO (rgb_color){85, 85, 85}
 #define IMAGE_EXTENSION_JPG ".jpg"
@@ -278,8 +286,7 @@ int gb_n_normal = GB_N_NORMAL; // normal priority; 1 normal; 0 lower
 char *gb_N_suffix = GB_N_SUFFIX; // info text file suffix
 #define GB_O_SUFFIX "_s.jpg"
 char *gb_o_suffix = GB_O_SUFFIX;
-#define GB_O_OUTDIR NULL
-char *gb_O_outdir = GB_O_OUTDIR;
+char *gb_O_outdir = NULL;
 #ifdef WIN32
     #define GB_P_PAUSE 1
 #else
@@ -329,7 +336,7 @@ int gb__tonemap = 0;
 
 /* more global variables */
 char *gb_argv0 = NULL;
-char *gb_version = "3.5.0";
+const char *gb_version = "3.5.0";
 time_t gb_st_start = 0; // start time of program
 char **movie_ext = NULL;
 
@@ -556,16 +563,15 @@ void format_pts(int64_t pts, double time_base, TIME_STR str)
 char *format_size(int64_t size)
 {
     static char buf[23]; // FIXME
-    char unit[]="B";
 
     if (size < 1024) {
-        sprintf(buf, "%"PRId64" %s", size, unit);
+        sprintf(buf, "%"PRId64" B", size);
     } else if (size < 1024*1024) {
-        sprintf(buf, "%.0f ki%s", size/1024.0, unit);
+        sprintf(buf, "%.0f kiB", size/1024.0);
     } else if (size < 1024*1024*1024) {
-        sprintf(buf, "%.0f Mi%s", size/1024.0/1024, unit);
+        sprintf(buf, "%.0f MiB", size/1024.0/1024);
     } else {
-        sprintf(buf, "%.1f Gi%s", size/1024.0/1024/1024, unit);
+        sprintf(buf, "%.1f GiB", size/1024.0/1024/1024);
     }
     return buf;
 }
@@ -579,7 +585,6 @@ char *format_size_f(int64_t size)
     char *buf = NULL, *tmpbuf;
     int bufflength;
     int needToPrint = 20;
-    char unit[]="b";
 
     do
     {
@@ -589,13 +594,13 @@ char *format_size_f(int64_t size)
         buf = tmpbuf;
 
         if (size < 1200) {
-            needToPrint = snprintf(buf, bufflength,"%"PRId64" %s", size, unit);
+            needToPrint = snprintf(buf, bufflength,"%"PRId64" b", size);
         } else if (size < (int64_t)10000*1000) {
-            needToPrint = snprintf(buf, bufflength,"%.0f k%s", size/1000.0, unit);
+            needToPrint = snprintf(buf, bufflength,"%.0f kb", size/1000.0);
         } else if (size < (int64_t)10000*1000*1000) {
-            needToPrint = snprintf(buf, bufflength,"%.0f M%s", size/1000.0/1000, unit);
+            needToPrint = snprintf(buf, bufflength,"%.0f Mb", size/1000.0/1000);
         } else {
-            needToPrint = snprintf(buf, bufflength,"%.1f G%s", size/1000.0/1000/1000, unit);
+            needToPrint = snprintf(buf, bufflength,"%.1f Gb", size/1000.0/1000/1000);
         }
     } while (needToPrint >= bufflength);
 
@@ -912,7 +917,7 @@ int save_image(gdImagePtr ip, char *outname)
     char *outname_w = outname;
 #endif
 
-    FILE *fp = _tfopen(outname_w, _TEXT("wb"));
+    FILE *fp = _tfopen(outname_w, BINARY_WRITE_MODE);
     if (fp != NULL) {
 
         char* image_extension = strrchr(outname, '.');
@@ -1121,7 +1126,7 @@ int sprite_export_vtt(pSprite s)
     char *outname_w = outname;
 #endif
 
-    FILE *fp = _tfopen(outname_w, _TEXT("wb"));
+    FILE *fp = _tfopen(outname_w, TEXT_WRITE_MODE);
     if (fp != NULL) {
 
         if(fwrite(s->vtt_content, sizeof(char), strlen(s->vtt_content), fp) <= 0)
@@ -1303,7 +1308,6 @@ void FrameRGB_convolution(AVFrame *pFrame, int width, int height,
 */
 float cmp_edge(gdImagePtr ip, int xbegin, int ybegin, int xend, int yend)
 {
-#define CMP_EDGE 208
     int count = 0;
     int i, j;
     for (j = ybegin; j <= yend; j++) {
@@ -1912,13 +1916,10 @@ double uint8_cmp(uint8_t *pa, uint8_t *pb, uint8_t *pc, int n)
     for (i=0; i<n; i++) {
         int diffab = pa[i] - pb[i];
         int diffac = pa[i] - pc[i];
-        int diffbc = pb[i] - pb[i];
+        int diffbc = pb[i] - pc[i];
 
-        if ((diffab > -20) && (diffab < 20) &&
-            (diffac > -20) && (diffac < 20) &&
-            (diffbc > -20) && (diffbc < 20)) {
+        if ( abs(diffab) < 20 && abs(diffac) < 20 && abs(diffbc) < 20 )
             same++;
-        }
     }
     return (double)same / n;
 }
@@ -2420,7 +2421,17 @@ save_cover_image(AVFormatContext *s, const char* cover_filename)
         {
             av_log(NULL, AV_LOG_VERBOSE, "Found cover art in stream index %d.%s", cover_stream_idx, NEWLINE);
 
-            FILE* image_file = fopen(cover_filename, "wb");
+
+//TODO make one unified function for opening files under unix/windows
+#if defined(_WIN32) && defined(_UNICODE)
+    wchar_t cover_filename_w[FILENAME_MAX];
+    UTF8_2_WC(cover_filename_w, cover_filename, FILENAME_MAX);
+#else
+    const char *cover_filename_w= cover_filename;
+#endif
+
+
+            FILE* image_file = _tfopen(cover_filename_w, BINARY_WRITE_MODE);
             if(image_file)
             {
                 fwrite(pkt.data, pkt.size, 1, image_file);
@@ -2685,14 +2696,9 @@ make_thumbnail(char *file)
 //    char *out_filename_w = tn.out_filename;
     char *info_filename_w = tn.info_filename;
 #endif
-//    out_fp = _tfopen(out_filename_w, _TEXT("wb"));
-//    if (NULL == out_fp) {
-//        av_log(NULL, AV_LOG_ERROR, "\n%s: creating output image '%s' failed: %s\n", gb_argv0, tn.out_filename, strerror(errno));
-//        goto cleanup;
-//    }
     if (NULL != gb_N_suffix) {
         av_log(NULL, AV_LOG_INFO, "\n%s: %s\n", __("Info file"), tn.info_filename);
-        info_fp = _tfopen(info_filename_w, _TEXT("wb"));
+        info_fp = _tfopen(info_filename_w, TEXT_WRITE_MODE);
         if (NULL == info_fp) {
             av_log(NULL, AV_LOG_ERROR, "\n%s: creating info file '%s' failed: %s\n", gb_argv0, tn.info_filename, strerror(errno));
             goto cleanup;
@@ -4005,6 +4011,7 @@ int get_format_opt(char c, char *optarg)
     if(token[0] == substr_protector)
     {
         char *newtsfont = strdup(token);
+        assert(newtsfont);
         size_t fsize = strlen(token);
         memset(newtsfont, 0, fsize+1);
         strncpy(newtsfont, token+1, fsize-2);
@@ -4241,11 +4248,16 @@ usage()
 
 }
 
-/**
- * @return 0- success, otherwise - failed
- */
+#ifdef TESTS
+#include "test.h"
+#endif
+
 int main(int argc, char *argv[])
 {
+#ifdef TESTS
+#include "test.c"
+#endif
+
     int return_code = -1;
 
     gb_argv0 = path_2_file(argv[0]);

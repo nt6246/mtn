@@ -101,6 +101,12 @@ test_bin:
 test:  rebuild  test_bin
 static_test: rebuild_static test_bin
 
+tests: CFLAGS+=-DTESTS
+tests: run
+	
+run: build
+	$(OUT)/mtn
+
 install:
 	mkdir -p $(DESTDIR)$(PREFIX)/bin/
 	install -m 755 $(OUT)/mtn $(DESTDIR)$(PREFIX)/bin/
