@@ -10,8 +10,8 @@ variables:
     - dnf -yq install https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm
     - dnf -yq install curl make gcc-c++ ffmpeg-devel gd-devel zlib-devel libpng-devel
     script:
-    - cd src
-    - make
+    - make -Csrc
+    - bin/mtn 2>&1 | head -3 | tee bin/versions.txt || true
     artifacts:
         name: mtn-$CI_JOB_NAME
         expire_in: 4 week
@@ -30,8 +30,8 @@ variables:
     - yum -y -q install https://mirrors.rpmfusion.org/free/el/rpmfusion-free-release-$(rpm -E %centos).noarch.rpm
     - yum -y -q install curl make gcc-c++ ffmpeg-devel gd-devel zlib-devel libpng-devel
     script:
-    - cd src
-    - make ENABLE_WEBP=0 ENABLE_AVIF=0
+    - make -Csrc ENABLE_WEBP=0 ENABLE_AVIF=0
+    - bin/mtn 2>&1 | head -3 | tee bin/versions.txt || true
     artifacts:
         name: mtn-$CI_JOB_NAME
         expire_in: 4 week
@@ -51,8 +51,8 @@ variables:
     - apt-get update
     - DEBIAN_FRONTEND=noninteractive apt-get install -qq curl gcc make libgd-dev libavutil-dev libavcodec-dev libavformat-dev libavfilter-dev libswscale-dev
     script:
-    - cd src
-    - make $make_opt
+    - make -Csrc $make_opt
+    - bin/mtn 2>&1 | head -3 || true
 
 debian:
     image: debian:12
@@ -84,9 +84,8 @@ debian:
     - cmake -DBUILD_SHARED_LIBS=0 -DBUILD_STATIC_LIBS=1 -DENABLE_FREETYPE=1 -DENABLE_FONTCONFIG=1 -DENABLE_JPEG=1 -DENABLE_PNG=1 -DENABLE_WEBP=1 -DENABLE_AVIF=0 -DFREETYPE_INCLUDE_DIR_ft2build=/usr/include/freetype2 -DFREETYPE_INCLUDE_DIR_freetype2=/usr/include/freetype2 .
     - make -j$CPUS
     - cd -
-    - cd src
-    - make ENABLE_AVIF=0 static_test
-    - cd -
+    - make -Csrc ENABLE_AVIF=0 static_test
+    - bin/mtn 2>&1 | head -3 | tee bin/versions.txt || true
     - pushd lib/FFmpeg
     - make distclean
     - popd
@@ -99,7 +98,7 @@ debian:
         name: mtn-$CI_JOB_NAME
         expire_in: 4 week
         paths:
-        - ./bin/mtn
+        - ./bin/*
         - ./mtn-static.tar.gz
         - ./*.jpg
 
