@@ -6,6 +6,7 @@ variables:
 
 .fedora: &fc
     stage: build
+    when: manual
     before_script:
     - dnf -yq install https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm
     - dnf -yq install curl make gcc-c++ ffmpeg-devel gd-devel zlib-devel libpng-devel
@@ -18,7 +19,7 @@ variables:
         paths:
         - ./bin/*
 
-.centOS: &el
+.RHEL: &el
     stage: build
 #    rules:
 #    - if: $CI_COMMIT_REF_NAME == "master" || $CI_COMMIT_REF_NAME == "devel"
@@ -26,9 +27,11 @@ variables:
     only:
     - master
     - devel
+    when: manual
     before_script:
-    - yum -y -q install https://mirrors.rpmfusion.org/free/el/rpmfusion-free-release-$(rpm -E %centos).noarch.rpm
-    - yum -y -q install curl make gcc-c++ ffmpeg-devel gd-devel zlib-devel libpng-devel
+    - yum repolist --all
+    - yum -y -q install https://mirrors.rpmfusion.org/free/el/rpmfusion-free-release-$(rpm -E %rhel).noarch.rpm
+    - yum -y install curl make gcc-c++ ffmpeg-devel gd-devel zlib-devel libpng-devel
     script:
     - make -Csrc ENABLE_WEBP=0 ENABLE_AVIF=0
     - bin/mtn 2>&1 | head -3 | tee bin/versions.txt || true
@@ -43,10 +46,6 @@ variables:
 #    rules:
 #    - if: $CI_COMMIT_REF_NAME == "master" || $CI_COMMIT_REF_NAME == "devel"
 #      when: manual
-    only:
-    - master
-    - devel
-    when: manual
     before_script:
     - apt-get update
     - DEBIAN_FRONTEND=noninteractive apt-get install -qq curl gcc make libgd-dev libavutil-dev libavcodec-dev libavformat-dev libavfilter-dev libswscale-dev
@@ -135,18 +134,18 @@ win:
         - mtn-win64
 
 # new RPM
-fc_latest:
+fedora_latest:
     image: fedora
     <<: *fc
 
 # old RPM
-centos7:
-    image: centos:7
+rocky8:
+    image: rockylinux:8
     <<: *el
 
 # new DEB
-ubuntu_devel:
-    image: ubuntu:devel
+ubuntu_latest:
+    image: ubuntu
     <<: *ubuntu
 
 # old DEB
