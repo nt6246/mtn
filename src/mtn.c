@@ -33,7 +33,7 @@
 */
 
 // enable unicode functions in mingw
-#ifdef WIN32
+#ifdef _WIN32
     #define UNICODE
     #define _UNICODE
 #endif
@@ -82,7 +82,7 @@
 #define EXIT_ERROR   2
 
 
-#ifdef WIN32
+#ifdef _WIN32
     unsigned int _CRT_fmode = _O_BINARY;  // default binary file including stdin, stdout, stderr
     #include <tchar.h>
     #include <windows.h>
@@ -116,7 +116,7 @@
 #endif                                                                                                                                                                                                         
 
 // newline character for info file
-#ifdef WIN32
+#ifdef _WIN32
     #define NEWLINE "\r\n"
 #else
     #define NEWLINE "\n"
@@ -157,7 +157,7 @@ const char* const FILTER_GRAPHS[] = {
 };
 
 
-#ifdef WIN32
+#ifdef _WIN32
  #define FOLDER_SEPARATOR "\\"
 #else
  #define FOLDER_SEPARATOR "/"
@@ -245,7 +245,7 @@ double gb_E_end = GB_E_END; // skip this seconds at the end
 #ifdef __APPLE__
 #	define GB_F_FONTNAME "Tahoma Bold.ttf"
 #else
-#ifdef WIN32
+#ifdef _WIN32
 #	define GB_F_FONTNAME "tahomabd.ttf"
 #else
 #	define GB_F_FONTNAME "DejaVuSans.ttf"
@@ -287,7 +287,7 @@ char *gb_N_suffix = GB_N_SUFFIX; // info text file suffix
 #define GB_O_SUFFIX "_s.jpg"
 char *gb_o_suffix = GB_O_SUFFIX;
 char *gb_O_outdir = NULL;
-#ifdef WIN32
+#ifdef _WIN32
     #define GB_P_PAUSE 1
 #else
     #define GB_P_PAUSE 0
@@ -651,7 +651,7 @@ return 0 if fail or is not
 */
 int is_reg(char *file)
 {
-#if defined(WIN32) && defined(_UNICODE)
+#if defined(_WIN32) && defined(_UNICODE)
     wchar_t file_w[FILENAME_MAX];
     UTF8_2_WC(file_w, file, FILENAME_MAX);
 #else
@@ -671,7 +671,7 @@ return 0 if fail or is not
 */
 int is_reg_newer(char *file, time_t st_time)
 {
-#if defined(WIN32) && defined(_UNICODE)
+#if defined(_WIN32) && defined(_UNICODE)
     wchar_t file_w[FILENAME_MAX];
     UTF8_2_WC(file_w, file, FILENAME_MAX);
 #else
@@ -693,7 +693,7 @@ FIXME: /c under msys is not a directory. why?
 */
 int is_dir(char *file)
 {
-#if defined(WIN32) && defined(_UNICODE)
+#if defined(_WIN32) && defined(_UNICODE)
     wchar_t file_w[FILENAME_MAX];
     UTF8_2_WC(file_w, file, FILENAME_MAX);
 #else
@@ -719,7 +719,7 @@ int is_key_frame(AVFrame *pFrame)
 
 char *rem_trailing_slash(char *str)
 {
-#ifdef WIN32
+#ifdef _WIN32
     // mingw doesn't seem to be happy about trailing '/' or '\\'
     // strip trailing '/' or '\\' that might get added by shell filename completion for directories
     int last_index = strlen(str) - 1;
@@ -910,7 +910,7 @@ return 0 if image is saved
 */
 int save_image(gdImagePtr ip, char *outname)
 {
-#if defined(WIN32) && defined(_UNICODE)
+#if defined(_WIN32) && defined(_UNICODE)
     wchar_t outname_w[FILENAME_MAX];
     UTF8_2_WC(outname_w, outname, FILENAME_MAX);
 #else
@@ -1119,7 +1119,7 @@ int sprite_export_vtt(pSprite s)
     char outname[FILENAME_MAX];
     sprintf(outname, "%s.vtt", s->tn.filenamebase);
 
-#if defined(WIN32) && defined(_UNICODE)
+#if defined(_WIN32) && defined(_UNICODE)
     wchar_t outname_w[FILENAME_MAX];
     UTF8_2_WC(outname_w, outname, FILENAME_MAX);
 #else
@@ -2687,7 +2687,7 @@ make_thumbnail(char *file)
             goto cleanup;
         }
     }
-#if defined(WIN32) && defined(_UNICODE)
+#if defined(_WIN32) && defined(_UNICODE)
 //    wchar_t out_filename_w[FILENAME_MAX];
 //    UTF8_2_WC(out_filename_w, tn.out_filename, FILENAME_MAX);
     wchar_t info_filename_w[FILENAME_MAX];
@@ -3671,7 +3671,7 @@ int process_dir(char *dir, int current_depth)
 
     current_depth++;
 
-#if defined(WIN32) && defined(_UNICODE)
+#if defined(_WIN32) && defined(_UNICODE)
     wchar_t dir_w[FILENAME_MAX];
     UTF8_2_WC(dir_w, dir, FILENAME_MAX);
 #else
@@ -3703,7 +3703,7 @@ int process_dir(char *dir, int current_depth)
             continue;
         }
 
-#if defined(WIN32) && defined(_UNICODE)
+#if defined(_WIN32) && defined(_UNICODE)
         char d_name_utf8[UTF8_FILENAME_SIZE];
         WC_2_UTF8(d_name_utf8, d->d_name, UTF8_FILENAME_SIZE);
 #else
@@ -3816,7 +3816,7 @@ return 0 if ok
 */
 int get_windows_argv(int __attribute__((unused)) *pargc, char __attribute__((unused)) ***pargv)
 {
-#if defined(WIN32) && defined(_UNICODE)
+#if defined(_WIN32) && defined(_UNICODE)
     // copied & modified from mingw-runtime-3.13's init.c
     int _argc = 0;
     wchar_t **_argv = 0;
@@ -4217,7 +4217,7 @@ usage()
     av_log(NULL, AV_LOG_INFO, "  file_or_dirX\n       name of the movie file or directory containing movie files\n\n");
 
 // no man page for windows; let them know about examples
-#ifdef WIN32
+#ifdef _WIN32
     av_log(NULL, AV_LOG_INFO, "Examples:\n");
     av_log(NULL, AV_LOG_INFO, "  to save thumbnails to file infile%s with default options:\n    %s infile.avi\n", GB_O_SUFFIX, gb_argv0);
     av_log(NULL, AV_LOG_INFO, "  to change time step to 65 seconds & change total width to 900:\n    %s -s 65 -w 900 infile.avi\n", gb_argv0);
@@ -4236,7 +4236,7 @@ usage()
     av_log(NULL, AV_LOG_INFO, "shortcut -> Properties -> Target); then drop files/dirs on the shortcut\n");
     av_log(NULL, AV_LOG_INFO, "instead.\n");
 #endif
-#ifdef WIN32
+#ifdef _WIN32
     av_log(NULL, AV_LOG_INFO, "\nMtn comes with ABSOLUTELY NO WARRANTY. this is free software, and you are\n");
     av_log(NULL, AV_LOG_INFO, "welcome to redistribute it under certain conditions; for details see file\n");
     av_log(NULL, AV_LOG_INFO, "gpl-2.0.txt.\n\n");
@@ -4619,7 +4619,7 @@ int main(int argc, char *argv[])
 
     /* lower priority */
     if (1 != gb_n_normal) { // lower priority
-#ifdef WIN32
+#ifdef _WIN32
         SetPriorityClass(GetCurrentProcess(), IDLE_PRIORITY_CLASS);
 #else
 		errno = 0;
@@ -4632,7 +4632,7 @@ int main(int argc, char *argv[])
 
     /* create output directory */
     if (NULL != gb_O_outdir && !is_dir(gb_O_outdir)) {
-#ifdef WIN32
+#ifdef _WIN32
         int ret = mkdir(gb_O_outdir);
 #else
         int ret = mkdir(gb_O_outdir, S_IRWXU | S_IRWXG | S_IRWXO);
@@ -4678,7 +4678,7 @@ int main(int argc, char *argv[])
 
   exit:
     // clean up
-#if defined(WIN32) && defined(_UNICODE)
+#if defined(_WIN32) && defined(_UNICODE)
     while (--argc >= 0) {
         free(argv[argc]);
     }

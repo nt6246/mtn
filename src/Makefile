@@ -91,15 +91,14 @@ rebuild_static: clean static
 ../po/mtn.pot: mtn.c
 	xgettext -d mtn -k__ -o $@ mtn.c
 
-locale: build ../po/mtn.pot
+locale: ../po/mtn.pot
 	msgmerge --update --no-fuzzy-matching --backup=none --lang=$(LANG) ../po/$(LANG).po ../po/mtn.pot
 
 test_bin:
 	$(OUT)/mtn -f ../test/font.ttf -h 50 -O /tmp /home/sample.avi
 	test -s /tmp/sample_s.jpg
 
-test:  rebuild  test_bin
-static_test: rebuild_static test_bin
+static_test: static test_bin
 
 tests: CFLAGS+=-DTESTS
 tests: run
