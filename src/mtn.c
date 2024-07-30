@@ -582,27 +582,17 @@ char *format_size(int64_t size)
  */
 char *format_size_f(int64_t size)
 {
-    char *buf = NULL, *tmpbuf;
-    int bufflength;
-    int needToPrint = 20;
+    char *buf = NULL;
+    int buflen = 0;
 
-    do
-    {
-        bufflength = needToPrint+1;
-        tmpbuf = realloc(buf, bufflength);
-        assert(tmpbuf);
-        buf = tmpbuf;
-
-        if (size < 1200) {
-            needToPrint = snprintf(buf, bufflength,"%"PRId64" b", size);
-        } else if (size < (int64_t)10000*1000) {
-            needToPrint = snprintf(buf, bufflength,"%.0f kb", size/1000.0);
-        } else if (size < (int64_t)10000*1000*1000) {
-            needToPrint = snprintf(buf, bufflength,"%.0f Mb", size/1000.0/1000);
-        } else {
-            needToPrint = snprintf(buf, bufflength,"%.1f Gb", size/1000.0/1000/1000);
-        }
-    } while (needToPrint >= bufflength);
+    if (size < 1200)
+        buflen = sprintf_realloc(&buf, buflen, "%"PRId64" b", size);
+    else if (size < (int64_t)10000*1000)
+        buflen = sprintf_realloc(&buf, buflen, "%.0f kb", size/1000.0);
+    else if (size < (int64_t)10000*1000*1000)
+        buflen = sprintf_realloc(&buf, buflen, "%.0f Mb", size/1000.0/1000);
+    else
+         sprintf_realloc(&buf, buflen, "%.1f Gb", size/1000.0/1000/1000);
 
     return buf;
 }
