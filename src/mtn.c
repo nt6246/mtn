@@ -256,7 +256,7 @@ double gb_E_end = GB_E_END; // skip this seconds at the end
 char *gb_f_fontname = GB_F_FONTNAME;
 rgb_color gb_F_info_color = COLOR_INFO; // info color
 double gb_F_info_font_size = 9; // info font size
-char *gb_F_ts_fontname = GB_F_FONTNAME; // time stamp fontname
+char *gb_F_ts_fontname = NULL; // time stamp fontname
 rgb_color gb_F_ts_color = COLOR_WHITE; // time stamp color
 rgb_color gb_F_ts_shadow = COLOR_BLACK; // time stamp shadow color
 double gb_F_ts_font_size = 8; // time stamp font size
@@ -4571,6 +4571,9 @@ int main(int argc, char *argv[])
 	 	fcStrFlagsInfotext.flags |= gdFTEX_FONTPATHNAME;
 		av_log(NULL, AV_LOG_VERBOSE, "Text info will be rendered using \"%s\" file\n", gb_f_fontname);
 	}
+	
+	if(gb_F_ts_fontname == NULL)
+		gb_F_ts_fontname = gb_f_fontname;
 
 	if (!strcmp(gb_F_ts_fontname, GB_F_FONTNAME) || is_reg(gb_F_ts_fontname)==0)
 	{
