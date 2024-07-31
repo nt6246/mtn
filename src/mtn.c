@@ -126,6 +126,10 @@
 #define EDGE_FOUND 0.001f // edge is considered found
 #define CMP_EDGE 208
 
+#define LAPLACE_FILTER_SIZE 3 // 3x3
+#define LAPLACE_FILTER_DIV 1
+#define LAPLACE_OFFSET 128
+
 int process_loop(int n, char **files, int current_depth);
 
 typedef char TIME_STR[20];
@@ -417,12 +421,14 @@ int vsprintf_realloc(char **s, int buffsize, const char *format, va_list args)
 
     int rc = vsnprintf(NULL, 0, format, args_copy);
 
-    if(rc >= buffsize)
+    if(rc > buffsize)
     {
-        buffsize = rc + sizeof(char);
-        *s = (char*)realloc(*s, buffsize);
+        buffsize = rc;
+        *s = (char*)realloc(*s, buffsize + sizeof(char));
     }
-    return vsnprintf(*s, buffsize, format, args);
+
+    vsnprintf(*s, buffsize+1, format, args);
+    return buffsize;
 }
 
 int sprintf_realloc(char **buffer, int b_len, const char *format, ...)
@@ -449,7 +455,9 @@ char* vstrcat_realloc(char **buffer, char *format,  va_list args)
 
     *buffer = (char*)realloc(*buffer,(buflen1 + buflen2 + 1) * sizeof(char));
 
-    return strcat(*buffer, newbuff);
+    strcat(*buffer, newbuff);
+    free(newbuff);
+    return *buffer;
 }
 
 char* strcat_realloc(char **buffer, char *format, ...)
@@ -463,7 +471,6 @@ char* strcat_realloc(char **buffer, char *format, ...)
 
 	return ret;
 }
-
 
 /* strrstr not in mingw
 */
@@ -519,13 +526,6 @@ char **strsplit(char *string, const char *delimiter)
     return arr;
 }
 
-char *format_color(rgb_color col)
-{
-    static char buf[7]; // FIXME
-    sprintf(buf, "%02X%02X%02X", col.r, col.g, col.b);
-    return buf; // FIXME
-}
-
 void format_time(double duration, TIME_STR str, char sep)
 {
     if (duration < 0) {
@@ -560,21 +560,27 @@ void format_pts(int64_t pts, double time_base, TIME_STR str)
     }
 }
 
+/*
+ * size: number of bytes
+ * Returnes formated string in B, kiB, MiB or GiB.
+ * Caller must free returned resource.
+ */
 char *format_size(int64_t size)
 {
-    static char buf[23]; // FIXME
+    char *buf = NULL;
 
     if (size < 1024) {
-        sprintf(buf, "%"PRId64" B", size);
+        sprintf_realloc(&buf, 0, "%"PRId64" B", size);
     } else if (size < 1024*1024) {
-        sprintf(buf, "%.0f kiB", size/1024.0);
+        sprintf_realloc(&buf, 0, "%.0f kiB", size/1024.0);
     } else if (size < 1024*1024*1024) {
-        sprintf(buf, "%.0f MiB", size/1024.0/1024);
+        sprintf_realloc(&buf, 0, "%.0f MiB", size/1024.0/1024);
     } else {
-        sprintf(buf, "%.1f GiB", size/1024.0/1024/1024);
+        sprintf_realloc(&buf, 0, "%.1f GiB", size/1024.0/1024/1024);
     }
     return buf;
 }
+
 /*
  * size: number of bites
  * Returnes formated string in b, kb, Mb or Gb.
@@ -1347,10 +1353,8 @@ gdImagePtr detect_edge(AVFrame *pFrame, const thumbnail* const tn, float *edge, 
         -1, 4,-1,
          0,-1, 0
     };
-#define FILTER_SIZE 3 // 3x3
-#define FILTER_DIV 1
-#define OFFSET 128
-    static int init_filter = 0; // FIXME
+
+    static int init_filter = 0;
     if (0 == init_filter) {
         init_filter = 1;
         filter[1] = -gb_D_edge/4.0f;
@@ -1393,7 +1397,7 @@ gdImagePtr detect_edge(AVFrame *pFrame, const thumbnail* const tn, float *edge, 
     };
     int count = 0;
     for (i = 0; i < EDGE_PARTS && count < 2; i++) {
-        FrameRGB_convolution(pFrame, width, height, filter, FILTER_SIZE, FILTER_DIV, OFFSET,
+        FrameRGB_convolution(pFrame, width, height, filter, LAPLACE_FILTER_SIZE, LAPLACE_FILTER_DIV, LAPLACE_OFFSET,
             ip, parts[i][0], parts[i][1], parts[i][2], parts[i][3]);
         edge[i] = cmp_edge(ip, parts[i][0], parts[i][1], parts[i][2], parts[i][3]);
         if (edge[i] >= edge_found) {
@@ -1795,7 +1799,7 @@ char *get_stream_info(AVFormatContext *ic, char *url, int strip_path, AVRational
     sprintf(buf + strlen(buf), " (%s)", ic->iformat->name);*/
     
     char* size_lc = __("Size");
-
+    char* formated_size = format_size(file_size);
 
     if(gb_H_human_filesize)
         /* File size only in MiB, GiB, ... */
@@ -1804,6 +1808,7 @@ char *get_stream_info(AVFormatContext *ic, char *url, int strip_path, AVRational
         /* File size i bytes and MiB */
         sprintf(buf + strlen(buf), "%s%s: %"PRId64" %s (%s)", NEWLINE, size_lc, file_size, __("bytes"), format_size(file_size));
 
+    free(formated_size); formated_size = NULL;
 
     if (ic->duration != AV_NOPTS_VALUE) {
         int hours, mins, secs;
@@ -1846,12 +1851,10 @@ char *get_stream_info(AVFormatContext *ic, char *url, int strip_path, AVRational
     return buf;
 }
 
-void dump_format_context(AVFormatContext *p, int __attribute__((unused)) index, char *url, int __attribute__((unused)) is_output)
+void dump_format_context(AVFormatContext *p, char *url, int __attribute__((unused)) is_output)
 {
-    //av_log(NULL, AV_LOG_ERROR, "\n");
     av_log(NULL, AV_LOG_VERBOSE, "***dump_format_context, name: %s, long_name: %s\n",
         p->iformat->name, p->iformat->long_name);
-    //dump_format(p, index, url, is_output);
 
     // dont show scaling info at this time because we dont have the proper sample_aspect_ratio
     av_log(NULL, AV_LOG_INFO, "%s%s", get_stream_info(p, url, 0, GB_A_RATIO), NEWLINE);
@@ -2550,8 +2553,6 @@ make_thumbnail(char *file)
 {
     int return_code = -1;
     av_log(NULL, AV_LOG_VERBOSE, "make_thumbnail: %s\n", file);
-    static int nb_file = 0; // FIXME: static
-    nb_file++;
     int idx = 0;
     int thumb_nb = 0;
 
@@ -2714,7 +2715,7 @@ make_thumbnail(char *file)
         av_log(NULL, AV_LOG_ERROR, "\n%s: avformat_find_stream_info %s failed: %d\n", gb_argv0, file, ret);
         goto cleanup;
     }
-    dump_format_context(pFormatCtx, nb_file, file, 0);
+    dump_format_context(pFormatCtx, file, 0);
 
     // Find videostream
     int video_index = find_default_videostream_index(pFormatCtx, gb_S_select_video_stream);
@@ -3413,10 +3414,11 @@ make_thumbnail(char *file)
             }
             /* stamp idx & blank & edge for debugging */
             if (gb_v_verbose > 0) {
-                char idx_str[1000]; // FIXME
-                sprintf(idx_str, "idx: %d, blank: %.2f\n%.6f  %.6f\n%.6f  %.6f\n%.6f  %.6f",
+                char *idx_str = NULL;
+                sprintf_realloc(&idx_str, 0, "idx: %d, blank: %.2f\n%.6f  %.6f\n%.6f  %.6f\n%.6f  %.6f",
                     idx, blank, edge[0], edge[1], edge[2], edge[3], edge[4], edge[5]);
                 image_string(ip, gb_f_fontname, COLOR_WHITE, gb_F_ts_font_size, 2, 0, idx_str, 1, COLOR_BLACK, 0, &fcStrFlagsTimestamp);
+                free(idx_str);
             }
         }
 
