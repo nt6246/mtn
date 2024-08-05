@@ -62,7 +62,7 @@ If you are familiar with C programming language and git, you can fix bug and sen
 * create gitlab account  
 * fork mtn repository  
 * checkout branch `devel`  
-* Fix issue and make a [GitLab merge request](https://docs.gitlab.com/ee/gitlab-basics/add-merge-request.html) 
+* Fix issue and make a [GitLab merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html) 
 
 Suggested C style and coding standard: [SunOS](https://www.cis.upenn.edu/~lee/06cse480/data/cstyle.ms.pdf) or [OpenBSD](https://man.openbsd.org/style)
 

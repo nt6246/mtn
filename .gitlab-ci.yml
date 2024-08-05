@@ -115,7 +115,7 @@ win:
     when: manual
     before_script:
     - sh misc/gitlab-ci-info.sh > build_info.txt
-    - dnf -yq install curl make mingw64-gcc.x86_64
+    - dnf -yq install curl make mingw64-gcc.x86_64 man ghostscript
     - curl --output /tmp/deps-win-libgd.tgz  -L https://$MYDOWNLOADSERVER/deps-libgd-$WIN_LIBGD_VER-x64.tgz
     - curl --output /tmp/deps-win-ffmpeg.tgz -L https://$MYDOWNLOADSERVER/deps-FFmpeg-$WIN_FFMPEG_VER-x64.tgz
     
@@ -126,9 +126,10 @@ win:
     - cd src
     - make -f Makefile.mingw
     - cd ..
-    - mkdir -p mtn-win64
+    - mkdir -p mtn-win64/doc
     - mv lib/windows/bin/* mtn-win64/
     - mv bin/mtn.exe mtn-win64/
+    - man -t man/mtn.1 | ps2pdf - mtn-win64/doc/man.pdf
     artifacts:
         name: mtn-$CI_JOB_NAME
         expire_in: 4 week
