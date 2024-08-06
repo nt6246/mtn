@@ -115,13 +115,6 @@
 #define BINARY_WRITE_MODE "w"                                                                                                                                                                              
 #endif                                                                                                                                                                                                         
 
-// newline character for info file
-#ifdef _WIN32
-    #define NEWLINE "\r\n"
-#else
-    #define NEWLINE "\n"
-#endif
-
 #define EDGE_PARTS 6 // # of parts used in edge detection
 #define EDGE_FOUND 0.001f // edge is considered found
 #define CMP_EDGE 208
@@ -172,6 +165,8 @@ const char* const FILTER_GRAPHS[] = {
 #else
     #define __(msg) msg
 #endif
+
+#define DEALLOC(p) dealloc(p);p=NULL;
 
 typedef struct thumbnail
 {
@@ -1055,8 +1050,7 @@ void sprite_flush(pSprite s)
         gdImageDestroy(s->ip);
         s->ip = gdImageCreateTrueColor(s->columns*s->w, s->rows*s->h);
 
-        dealloc(s->curr_filename);
-        s->curr_filename = NULL;
+        DEALLOC(s->curr_filename);
         s->nr_of_shots=0;
         s->curr_file_idx++;
     }
@@ -1148,8 +1142,7 @@ void sprite_destroy(pSprite s)
         dealloc(s->vtt_content);
         dealloc(s->filenamebase);
         gdImageDestroy(s->ip);
-        free(s);
-        s = NULL;
+        DEALLOC(s);
     }
 }
 
@@ -1170,10 +1163,8 @@ int thumb_alloc_dynamic(thumbnail *ptn)
 
 void thumb_cleanup_dynamic(thumbnail *ptn)
 {
-    dealloc(ptn->ppts);
-    dealloc(ptn->filenamebase);
-    ptn->ppts = NULL;
-    ptn->filenamebase = NULL;
+    DEALLOC(ptn->ppts);
+    DEALLOC(ptn->filenamebase);
 }
 
 /* returns blured shadow on success, NULL otherwise	*/
@@ -1204,26 +1195,26 @@ gdImagePtr create_shadow_image(int background, int *INOUTradius, int width, int 
 				if(blurredShadow != NULL)
 				{
 					gdImageDestroy(shadow);
-					av_log(NULL, AV_LOG_INFO, "  thumbnail shadow radius: %dpx %s", radius, NEWLINE);
+					av_log(NULL, AV_LOG_INFO, "  thumbnail shadow radius: %dpx \n", radius);
 					if(gb_g_gap < shadowOffset)
-						av_log(NULL, AV_LOG_INFO, "  thumbnail shadow might be invisible. Consider increase gap between individual shots (-g %d).%s", shadowOffset, NEWLINE);
+						av_log(NULL, AV_LOG_INFO, "  thumbnail shadow might be invisible. Consider increase gap between individual shots (-g %d).\n", shadowOffset);
 					return blurredShadow;
 				}
 				else
-					av_log(NULL, AV_LOG_ERROR, "Can't blur Shadow Image!%s", NEWLINE);
+					av_log(NULL, AV_LOG_ERROR, "Can't blur Shadow Image!\n");
 			}
 			#else
 			{
-				av_log(NULL, AV_LOG_INFO, "Can't blur Shadow Image. Libgd does not support blurring. Use version libgd-2.1.1 or newer.%s", NEWLINE);
+				av_log(NULL, AV_LOG_INFO, "Can't blur Shadow Image. Libgd does not support blurring. Use version libgd-2.1.1 or newer.\n");
 				return shadow;
 			}
             #endif
 		}
 		else
-			av_log(NULL, AV_LOG_ERROR, "Couldn't create Image in Size %dx%d!%s", shW, shH, NEWLINE);
+			av_log(NULL, AV_LOG_ERROR, "Couldn't create Image in Size %dx%d!\n", shW, shH);
 	}
 	else
-		av_log(NULL, AV_LOG_ERROR, "Shadow can't have negative value! (see option --shadow) %s", NEWLINE);
+		av_log(NULL, AV_LOG_ERROR, "Shadow can't have negative value! (see option --shadow) \n");
 
     return NULL;
 }
@@ -1366,7 +1357,7 @@ gdImagePtr detect_edge(AVFrame *pFrame, const thumbnail* const tn, float *edge, 
 
     gdImagePtr ip = gdImageCreateTrueColor(width, height);
     if (NULL == ip) {
-        av_log(NULL, AV_LOG_ERROR, "  gdImageCreateTrueColor failed%s", NEWLINE);
+        av_log(NULL, AV_LOG_ERROR, "  gdImageCreateTrueColor failed\n");
         return NULL;
     }
     if (gb_v_verbose > 0) {
@@ -1427,7 +1418,7 @@ save_AVFrame(
 
     pFrameRGB = av_frame_alloc();
     if (pFrameRGB == NULL) {
-        av_log(NULL, AV_LOG_ERROR, "  couldn't allocate a video frame %s", NEWLINE);
+        av_log(NULL, AV_LOG_ERROR, "  couldn't allocate a video frame \n");
         goto cleanup;
     }
     int rgb_bufsize = av_image_get_buffer_size(rgb_pix_fmt, dst_width, dst_height, LINESIZE_ALIGN);
@@ -1487,12 +1478,12 @@ void dump_packet(AVPacket *p, AVStream * ps)
     pkt->pts can be AV_NOPTS_VALUE if the video format has B frames, so it is
     better to rely on pkt->dts if you do not decompress the payload.
     */
-    av_log(NULL, AV_LOG_VERBOSE, "***dump_packet: pos:%"PRId64"%s", p->pos, NEWLINE);
-    av_log(NULL, AV_LOG_VERBOSE, "pts tb: %"PRId64", dts tb: %"PRId64", duration tb: %"PRId64"%s",
-        p->pts, p->dts, p->duration, NEWLINE);
-    av_log(NULL, AV_LOG_VERBOSE, "pts s: %.2f, dts s: %.2f, duration s: %.2f%s",
+    av_log(NULL, AV_LOG_VERBOSE, "***dump_packet: pos:%"PRId64"\n", p->pos);
+    av_log(NULL, AV_LOG_VERBOSE, "pts tb: %"PRId64", dts tb: %"PRId64", duration tb: %"PRId64"\n",
+        p->pts, p->dts, p->duration);
+    av_log(NULL, AV_LOG_VERBOSE, "pts s: %.2f, dts s: %.2f, duration s: %.2f\n",
         p->pts * av_q2d(ps->time_base), p->dts * av_q2d(ps->time_base),
-        p->duration * av_q2d(ps->time_base), NEWLINE); // pts can be AV_NOPTS_VALUE
+        p->duration * av_q2d(ps->time_base)); // pts can be AV_NOPTS_VALUE
 }
 
 void dump_codec_context(AVCodecContext * p)
@@ -1631,7 +1622,7 @@ AVCodecContext* get_codecContext_from_codecParams(AVCodecParameters* pCodecPar)
     pCodecContext = avcodec_alloc_context3(NULL);
     if(!pCodecContext)
     {
-        av_log(NULL, AV_LOG_ERROR, "Couldn't alocate codec context %s", NEWLINE);
+        av_log(NULL, AV_LOG_ERROR, "Couldn't alocate codec context \n");
         return NULL;
     }
 
@@ -1685,7 +1676,7 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
             continue;
         }
 
-        strcat(buf, NEWLINE);
+        strcat(buf, "\n");
 
         if (gb_v_verbose > 0) {
             sprintf(buf + strlen(buf), "%s %d", __("Stream"), i);
@@ -1803,10 +1794,10 @@ char *get_stream_info(AVFormatContext *ic, char *url, int strip_path, AVRational
 
     if(gb_H_human_filesize)
         /* File size only in MiB, GiB, ... */
-        sprintf(buf + strlen(buf), "%s%s: %s", NEWLINE, size_lc, format_size(file_size));
+        sprintf(buf + strlen(buf), "\n%s: %s", size_lc, format_size(file_size));
     else
         /* File size i bytes and MiB */
-        sprintf(buf + strlen(buf), "%s%s: %"PRId64" %s (%s)", NEWLINE, size_lc, file_size, __("bytes"), format_size(file_size));
+        sprintf(buf + strlen(buf), "\n%s: %"PRId64" %s (%s)", size_lc, file_size, __("bytes"), format_size(file_size));
 
     free(formated_size); formated_size = NULL;
 
@@ -1857,7 +1848,7 @@ void dump_format_context(AVFormatContext *p, char *url, int __attribute__((unuse
         p->iformat->name, p->iformat->long_name);
 
     // dont show scaling info at this time because we dont have the proper sample_aspect_ratio
-    av_log(NULL, AV_LOG_INFO, "%s%s", get_stream_info(p, url, 0, GB_A_RATIO), NEWLINE);
+    av_log(NULL, AV_LOG_INFO, "%s\n", get_stream_info(p, url, 0, GB_A_RATIO));
 
     av_log(NULL, AV_LOG_VERBOSE, "start_time av: %"PRId64", duration av: %"PRId64"\n",
         p->start_time, p->duration);
@@ -2314,10 +2305,10 @@ find_default_videostream_index(AVFormatContext *s, int user_selected_video_strea
                 if (++n_video_stream == user_selected_video_stream)
                 {
                     default_stream_idx = i;
-                    av_log(NULL, AV_LOG_INFO, "Selecting video stream (-S): %d%s", user_selected_video_stream, NEWLINE);
+                    av_log(NULL, AV_LOG_INFO, "Selecting video stream (-S): %d\n", user_selected_video_stream);
 
                     if(cover_image)
-                        av_log(NULL, AV_LOG_INFO, "  Warning: Selected video stream is \"cover art\"%s", NEWLINE);
+                        av_log(NULL, AV_LOG_INFO, "  Warning: Selected video stream is \"cover art\"\n");
                     break;
                 }
             }
@@ -2412,7 +2403,7 @@ save_cover_image(AVFormatContext *s, const char* cover_filename)
 
         if(pkt.data && pkt.size > 0)
         {
-            av_log(NULL, AV_LOG_VERBOSE, "Found cover art in stream index %d.%s", cover_stream_idx, NEWLINE);
+            av_log(NULL, AV_LOG_VERBOSE, "Found cover art in stream index %d.\n", cover_stream_idx);
 
 
 //TODO make one unified function for opening files under unix/windows
@@ -2431,11 +2422,11 @@ save_cover_image(AVFormatContext *s, const char* cover_filename)
                 fclose(image_file);
             }
             else
-                av_log(NULL, AV_LOG_ERROR, "Error opening file \"%s\" for writting!%s", cover_filename, NEWLINE);
+                av_log(NULL, AV_LOG_ERROR, "Error opening file \"%s\" for writting!\n", cover_filename);
         }
     }
     else
-        av_log(NULL, AV_LOG_VERBOSE, "No cover art found.%s", NEWLINE);
+        av_log(NULL, AV_LOG_VERBOSE, "No cover art found.\n");
 }
 
 void
@@ -2529,7 +2520,7 @@ reduce_shots_to_fit_in(
         if(reduced_rows == 0)
             reduced_rows = 1;
 
-        av_log(NULL, AV_LOG_INFO, "  movie is too short, reducing number of rows to %d%s", reduced_rows, NEWLINE);
+        av_log(NULL, AV_LOG_INFO, "  movie is too short, reducing number of rows to %d\n", reduced_rows);
 
         calculate_thumbnail(
             req_step,
@@ -2736,7 +2727,7 @@ make_thumbnail(char *file)
         goto cleanup;
 
     if((tn.rotation = get_stream_rotation(pStream)) != 0)
-        av_log(NULL, AV_LOG_INFO,  "  %s: %d°%s", __("Rotation"), tn.rotation, NEWLINE);
+        av_log(NULL, AV_LOG_INFO,  "  %s: %d°\n", __("Rotation"), tn.rotation);
 
     dump_stream(pStream);
     //dump_index_entries(pStream);
@@ -2964,8 +2955,8 @@ make_thumbnail(char *file)
         suggested_height = floor((gb_w_width - 2*gb_g_gap) * scaled_src_height_out/scaled_src_width_out);
         suggested_height-= suggested_height%2;
 
-        av_log(NULL, AV_LOG_ERROR, "  thumbnail to small; increase image width to %d (-w) or decrease min. image height to %d (-h)%s" ,
-               suggested_width, suggested_height, NEWLINE);
+        av_log(NULL, AV_LOG_ERROR, "  thumbnail to small; increase image width to %d (-w) or decrease min. image height to %d (-h)\n" ,
+               suggested_width, suggested_height);
         goto cleanup;
     }
 
@@ -2992,7 +2983,7 @@ make_thumbnail(char *file)
     char *all_text = get_stream_info(pFormatCtx, file, 1, sample_aspect_ratio); // FIXME: using function's static buffer
 
     if (NULL != info_fp) {
-        fprintf(info_fp, "%s%s", all_text, NEWLINE);
+        fprintf(info_fp, "%s\n", all_text);
     }
     if (0 == gb_i_info) { // off
         *all_text = '\0';
@@ -3024,7 +3015,7 @@ make_thumbnail(char *file)
 	}
 
     if (gb_T_text)
-        sprintf(all_text+strlen(all_text), "%s%s", NEWLINE, gb_T_text);
+        sprintf(all_text+strlen(all_text), "\n%s", gb_T_text);
 
     if(gb_i_info)
 	{
@@ -3043,12 +3034,12 @@ make_thumbnail(char *file)
         __("tile size"), tn.shot_width_out, tn.shot_height_out, 
         __("total size"), tn.img_width, tn.img_height);
 
-    av_log(NULL, AV_LOG_INFO, "%s%s", extra_info_text, NEWLINE);
+    av_log(NULL, AV_LOG_INFO, "%s\n", extra_info_text);
 
     if (NULL != info_fp) {
-        fprintf(info_fp, "%s%s", extra_info_text, NEWLINE);
+        fprintf(info_fp, "%s\n", extra_info_text);
         if(gb_T_text)
-			fprintf(info_fp, "%s%s", gb_T_text, NEWLINE);
+			fprintf(info_fp, "%s\n", gb_T_text);
     }
 
 	free(extra_info_text);
