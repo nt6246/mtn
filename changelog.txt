@@ -1,6 +1,7 @@
 version NEXT
 - enabled FontConfig: Font argument for -f and -F now works also with font names
-- add missing gap between info text and thumbnails
+- improved option -T
+- fix missing gap between info text and thumbnails
 - fix parsing option -F when fontpath contains ':'
 
 version 3.5.0 	2024/02/21

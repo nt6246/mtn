@@ -26,9 +26,8 @@ From source
 -----------
 
 ```sh
-cd src
 # USER_CFLAGS is optional
-make USER_CFLAGS=-DGB_F_FONTNAME=\\\"DefaultFont.ttf\\\"
+make -Csrc USER_CFLAGS=-DGB_F_FONTNAME=\\\"DefaultFont.ttf\\\"
 make install
 ```
 
@@ -47,7 +46,7 @@ dnf install https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$
 dnf install ffmpeg-devel gd-devel make gcc-c++  
 ```
 
-**[Debian](https://www.debian.org/)** 9+, **[Ubuntu](https://www.ubuntu.com/)** 18.04+, **[LinuxMint](https://linuxmint.com)** 19+, **[MX Linux](https://mxlinux.org/)** 18+, ...  
+**[Debian](https://www.debian.org/)**, **[Ubuntu](https://www.ubuntu.com/)**, **[LinuxMint](https://linuxmint.com)**, **[MX Linux](https://mxlinux.org/)**, ...  
 
 ```sh
 sudo apt-get install libgd-dev libavutil-dev libavcodec-dev libavformat-dev libavfilter-dev libswscale-dev make  
@@ -65,19 +64,13 @@ sudo pacman -Sy ffmpeg gd
 zypper install ffmpeg-4-libavcodec-devel ffmpeg-4-libavdevice-devel ffmpeg-4-libavfilter-devel ffmpeg-4-libavformat-devel ffmpeg-4-libswscale-devel gd-devel freetype2-devel libjpeg62-devel make gcc 
 ```
 
-**[RHEL](https://www.redhat.com/en/technologies/linux-platforms/enterprise-linux/)** 8+
+**[RHEL](https://www.redhat.com/en/technologies/linux-platforms/enterprise-linux/)**
 
 ```sh
 dnf install https://mirrors.rpmfusion.org/free/el/rpmfusion-free-release-$(rpm -E %rhel).noarch.rpm
 dnf install ffmpeg-devel gd-devel make gcc-c++    
 ```
 
-**[RHEL](https://centos.org/)** 7
-
-```sh
-yum localinstall https://mirrors.rpmfusion.org/free/el/rpmfusion-free-release-$(rpm -E %rhel).noarch.rpm
-yum install ffmpeg-devel gd-devel make gcc-c++    
-```
 
 **[FreeBSD](https://www.freebsd.org/)**
 

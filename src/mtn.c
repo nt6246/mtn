@@ -106,14 +106,16 @@
 #ifndef MAX
 #define MAX(a,b) ((a)<(b)?(b):(a))
 #endif
-  
-#ifdef _WIN32                                                                                                                                                                                                  
-#define TEXT_WRITE_MODE   _TEXT("wt")                                                                                                                                                                         
-#define BINARY_WRITE_MODE _TEXT("wb")                                                                                                                                                                         
-#else                                                                                                                                                                                                          
-#define TEXT_WRITE_MODE   "w"                                                                                                                                                                              
-#define BINARY_WRITE_MODE "w"                                                                                                                                                                              
-#endif                                                                                                                                                                                                         
+
+#ifdef _WIN32
+#define TEXT_READ_MODE   _TEXT("rt")
+#define TEXT_WRITE_MODE   _TEXT("wt")
+#define BINARY_WRITE_MODE _TEXT("wb")
+#else
+#define TEXT_READ_MODE   "r"
+#define TEXT_WRITE_MODE   "w"
+#define BINARY_WRITE_MODE "w"
+#endif
 
 #define EDGE_PARTS 6 // # of parts used in edge detection
 #define EDGE_FOUND 0.001f // edge is considered found
@@ -190,6 +192,14 @@ typedef struct thumbnail
 
     // dynamic
     int64_t *ppts; // array of pts value of each shot
+
+    char *filename;
+    int64_t bytes;
+    char *size;
+    char *duration;
+    double framerate;
+    char *acodec;
+    char *vcodec;
 } thumbnail; // thumbnail data & info
 
 typedef struct SPRITE
@@ -304,8 +314,7 @@ int gb_s_step = GB_S_STEP; // less than 0 = every frame; 0 = step evenly to get 
 int gb_S_select_video_stream = GB_S_SELECT_VIDEO_STREAM;
 #define GB_T_TIME 1
 int gb_t_timestamp = GB_T_TIME; // 1 on; 0 off
-#define GB_T_TEXT NULL
-char *gb_T_text = GB_T_TEXT;
+char *gb_T_text = NULL;
 #define GB_V_VERBOSE 0
 int gb_v_verbose = GB_V_VERBOSE; // 1 on; 0 off
 int gb_V = GB_V_VERBOSE; // 1 on; 0 off
@@ -449,6 +458,9 @@ char* vstrcat_realloc(char **buffer, char *format,  va_list args)
         buflen1 = strlen(*buffer);
 
     *buffer = (char*)realloc(*buffer,(buflen1 + buflen2 + 1) * sizeof(char));
+
+    if(buflen1 == 0)
+        *buffer[0] = '\0';
 
     strcat(*buffer, newbuff);
     free(newbuff);
@@ -896,6 +908,158 @@ int image_string_padding(char *font, double size, gdFTStringExtra *fcFlags)
     return image_string_height("SAMPLE", font, size, fcFlags) * 0.3 + 0.5;
 }
 
+char* find_tag_value(char* tagname, thumbnail *tn)
+{
+    char* value = malloc(sizeof(char));
+    value = '\0';
+
+    if(!strcmp(tagname, "nl"))
+        sprintf_realloc(&value, 0, "%s", "\n");
+    else if(!strcmp(tagname, "filename"))
+        sprintf_realloc(&value, 0, "%s", tn->filename);
+    else if(!strcmp(tagname, "bytes"))
+        sprintf_realloc(&value, 0, "%"PRId64, tn->bytes);
+    else if(!strcmp(tagname, "size"))
+        sprintf_realloc(&value, 0, "%s", tn->size);
+    else if(!strcmp(tagname, "width"))
+        sprintf_realloc(&value, 0, "%d", tn->shot_width_in);
+    else if(!strcmp(tagname, "height"))
+        sprintf_realloc(&value, 0, "%d", tn->shot_height_in);
+    else if(!strcmp(tagname, "duration"))
+        sprintf_realloc(&value, 0, "%s", tn->duration);
+    else if(!strcmp(tagname, "framerate"))
+        sprintf_realloc(&value, 0, "%.2f", tn->framerate);
+    else if(!strcmp(tagname, "acodec"))
+        sprintf_realloc(&value, 0, "%s", tn->acodec);
+    else if(!strcmp(tagname, "vcodec"))
+        sprintf_realloc(&value, 0, tn->vcodec);
+    else
+    {
+        av_log(NULL, AV_LOG_WARNING, "Invalid tagname \"%s\"! (see -T option)\n", tagname);
+        sprintf_realloc(&value, 0, "%s", "?");
+    }
+
+    return value;
+}
+
+char* image_string_replace_tags(char *T_text, thumbnail* mi)
+{
+    char *text = strdup(T_text);
+    char *newtext = malloc(sizeof(char)); *newtext = '\0';
+    char *point = text;
+    char *begin = strstr(point, "{{");
+    char *end = NULL;
+    char *tagvalue = NULL;
+
+    if (begin == NULL)
+        return text;
+
+    *begin = '\0';
+
+    // text before first {{tag}}
+    if(begin != text)
+    {
+        strcat_realloc(&newtext, "%s", text);
+    }
+    begin+=2;
+
+    do
+    {
+        end = strstr(begin, "}}");
+        if(end == NULL){
+            av_log(NULL, AV_LOG_ERROR, "Missing end tag in -T option!\n");
+            DEALLOC(newtext);
+            return strdup(T_text);
+        }
+        *end = '\0';
+        end+=2;
+        // replace tag name with its value
+        tagvalue = find_tag_value(begin, mi);
+        strcat_realloc(&newtext,  "%s", tagvalue);
+        dealloc(tagvalue);
+        begin = strstr(end, "{{");
+
+        if(begin)
+        {
+            *begin = '\0';
+            begin+=2;
+
+            if(begin != end && strlen(end))
+                strcat_realloc(&newtext, "%s", end);
+        }
+        else
+        {
+            // text after last {{tag}}
+            if(*end != '\0')
+                strcat_realloc(&newtext, "%s", end);
+        }
+    }
+    while(begin);
+
+
+    dealloc(text);
+    return newtext;
+}
+
+char* file_get_content(char *filepath)
+{
+    FILE *fp = _tfopen(filepath, TEXT_READ_MODE);
+
+    char buf[100+1];
+    char *content = NULL;
+    size_t read = 0;
+
+    if(fp)
+    {
+        do
+        {
+            if((read = fread(buf, sizeof(char), 100, fp)) > 0)
+            {
+                buf[read] = '\0';
+                strcat_realloc(&content, "%s", buf);
+            }
+        }
+        while(read == 100);
+
+        fclose(fp);
+    }
+    else
+    {
+        av_log(NULL, AV_LOG_ERROR, "Cannot open file '%s' for reading!\n", filepath);
+        DEALLOC(content);
+    }
+
+    return content;
+}
+
+/* returns new text from -T option or content of the file
+ * caller is responsible for deallocating */
+char *get_text_from_T_option(char *T_text)
+{
+    if(T_text == NULL)
+    {
+        av_log(NULL, AV_LOG_ERROR, "T_text cannot be NULL (line %d)!\n", __LINE__);
+        exit(1);
+    }
+
+    size_t textlen = strlen(T_text);
+
+    if(textlen > 2)
+    {
+        char *slsh = strstr(T_text, "/");
+
+        if(slsh && is_reg(T_text))
+            return file_get_content(T_text);
+
+        slsh = strstr(T_text, "\\");
+
+        if(slsh && is_reg(T_text))
+            return file_get_content(T_text);
+    }
+    return strdup(T_text);
+}
+
+
 /*
 return 0 if image is saved
 */
@@ -982,9 +1146,18 @@ void thumb_new(thumbnail *ptn)
     ptn->tiles_nr = 0;
     ptn->rotation = 0;
 
+    ptn->filename = NULL;
+    ptn->bytes = -1;
+    ptn->size = NULL;
+    ptn->duration = NULL;
+    ptn->acodec = NULL;
+    ptn->vcodec = NULL;
+    ptn->framerate = -1.0;
+
     // dynamic
     ptn->ppts = NULL;
 }
+
 
 pSprite sprite_create(int max_size, int shot_width, int shot_height, thumbnail tn)
 {
@@ -1165,9 +1338,14 @@ void thumb_cleanup_dynamic(thumbnail *ptn)
 {
     DEALLOC(ptn->ppts);
     DEALLOC(ptn->filenamebase);
+    DEALLOC(ptn->filename);
+    DEALLOC(ptn->size);
+    DEALLOC(ptn->duration);
+    DEALLOC(ptn->acodec);
+    DEALLOC(ptn->vcodec);
 }
 
-/* returns blured shadow on success, NULL otherwise	*/
+/* returns blured shadow on success, NULL otherwise */
 gdImagePtr create_shadow_image(int background, int *INOUTradius, int width, int height)
 {
     gdImagePtr shadow;
@@ -1638,7 +1816,7 @@ AVCodecContext* get_codecContext_from_codecParams(AVCodecParameters* pCodecPar)
 /*
 modified from libavformat's dump_format
 */
-void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf, AVRational sample_aspect_ratio)
+void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf, AVRational sample_aspect_ratio, thumbnail *mi)
 {
     char sub_buf[1024] = {'\0',}; //FIXME char sub_buf[1024]
     unsigned int i;
@@ -1692,8 +1870,23 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
 
         avcodec_string(codec_buf, sizeof(codec_buf), pCodexCtx, 0);
 
-/* re-enable SAR & DAR
-        // remove [SAR DAR] from string, it's not very useful.
+        if(AVMEDIA_TYPE_AUDIO == st->codecpar->codec_type)
+        {
+            // for the first audio source
+            if(mi && mi->acodec == NULL) 
+                mi->acodec = strdup(avcodec_get_name(pCodexCtx->codec_id));
+        }
+
+        if(AVMEDIA_TYPE_VIDEO == st->codecpar->codec_type)
+        {
+            // for the first video source
+            if(mi && mi->vcodec == NULL) 
+                mi->vcodec = strdup(avcodec_get_name(pCodexCtx->codec_id));
+        }
+
+/* to remove [SAR DAR] from string ...
+        
+
         char *begin = NULL, *end = NULL;
         if ((begin=strstr(codec_buf, " [SAR")) != NULL
             && (end=strchr(begin, ']')) != NULL) {
@@ -1706,7 +1899,7 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
         strcat(buf, codec_buf);
 
         /* if bitrate is missing, try to search elsewhere */
-        if((AVMEDIA_TYPE_AUDIO  == st->codecpar->codec_type || AVMEDIA_TYPE_VIDEO  == st->codecpar->codec_type )
+        if((AVMEDIA_TYPE_AUDIO == st->codecpar->codec_type || AVMEDIA_TYPE_VIDEO == st->codecpar->codec_type )
         &&  st->codecpar->bit_rate <= 0)
         {
             char bitratebuff[100];
@@ -1721,17 +1914,30 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
             }
         }
 
-        if (st->codecpar->codec_type == AVMEDIA_TYPE_VIDEO ){
+        if (st->codecpar->codec_type == AVMEDIA_TYPE_VIDEO )
+        {
+            // framerate
+            double _fps;
             if (st->r_frame_rate.den && st->r_frame_rate.num)
-                sprintf(buf + strlen(buf), ", %5.2f fps(r)", av_q2d(st->r_frame_rate));
+            {
+                _fps = av_q2d(st->r_frame_rate);
+                sprintf(buf + strlen(buf), ", %5.2f fps(r)", _fps);
+            }
             else
-                sprintf(buf + strlen(buf), ", %5.2f fps(c)", 1/av_q2d(st->time_base));
+            {
+                _fps = 1/av_q2d(st->time_base);
+                sprintf(buf + strlen(buf), ", %5.2f fps(c)", _fps);
+            }
+
+            // for the first video source
+            if(mi && mi->framerate <= 0.0)
+                mi->framerate = _fps;
 
             // show aspect ratio
             int scaled_src_width, scaled_src_height;
 
             calc_scale_src(st->codecpar->width, st->codecpar->height, sample_aspect_ratio,
-                &scaled_src_width, &scaled_src_height);
+                    &scaled_src_width, &scaled_src_height);
 
             if (scaled_src_width != st->codecpar->width || scaled_src_height != st->codecpar->height) {
                 sprintf(buf + strlen(buf), " => %dx%d", scaled_src_width, scaled_src_height);
@@ -1773,7 +1979,7 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
 /*
 modified from libavformat's dump_format
 */
-char *get_stream_info(AVFormatContext *ic, char *url, int strip_path, AVRational __attribute__((unused)) sample_aspect_ratio)
+char *get_stream_info(AVFormatContext *ic, char *url, int strip_path, AVRational sample_aspect_ratio, thumbnail *mi)
 {
     static char buf[4096]; // FIXME: this is also used for all text at the top
     int duration = -1;
@@ -1784,22 +1990,28 @@ char *get_stream_info(AVFormatContext *ic, char *url, int strip_path, AVRational
     }
 
     int64_t file_size = avio_size(ic->pb);
+    if(mi) mi->bytes = file_size;
 
     sprintf(buf, "%s: %s", __("File"), file_name);
+    if(mi && mi->filename == NULL)
+        mi->filename = strdup(file_name);
+
     /* file format
     sprintf(buf + strlen(buf), " (%s)", ic->iformat->name);*/
     
     char* size_lc = __("Size");
     char* formated_size = format_size(file_size);
 
+    if(mi) mi->size = strdup(formated_size);
+
     if(gb_H_human_filesize)
         /* File size only in MiB, GiB, ... */
-        sprintf(buf + strlen(buf), "\n%s: %s", size_lc, format_size(file_size));
+        sprintf(buf + strlen(buf), "\n%s: %s", size_lc, formated_size);
     else
         /* File size i bytes and MiB */
-        sprintf(buf + strlen(buf), "\n%s: %"PRId64" %s (%s)", size_lc, file_size, __("bytes"), format_size(file_size));
+        sprintf(buf + strlen(buf), "\n%s: %"PRId64" %s (%s)", size_lc, file_size, __("bytes"), formated_size);
 
-    free(formated_size); formated_size = NULL;
+    DEALLOC(formated_size);
 
     if (ic->duration != AV_NOPTS_VALUE) {
         int hours, mins, secs;
@@ -1809,8 +2021,10 @@ char *get_stream_info(AVFormatContext *ic, char *url, int strip_path, AVRational
         hours = mins / 60;
         mins %= 60;
         sprintf(buf + strlen(buf), ", %s: %02d:%02d:%02d", __("duration"), hours, mins, secs);
+        if(mi) sprintf_realloc(&mi->duration, 0, "%02d:%02d:%02d", hours, mins, secs);
     } else {
         sprintf(buf + strlen(buf), ", %s", __("duration: N/A"));
+        if(mi) sprintf_realloc(&mi->duration, 0, "N/A");
     }
     /*
     if (ic->start_time != AV_NOPTS_VALUE) {
@@ -1834,9 +2048,9 @@ char *get_stream_info(AVFormatContext *ic, char *url, int strip_path, AVRational
         strcat(buf, ", bitrate: N/A");
     }
 
-    get_stream_info_type(ic, AVMEDIA_TYPE_AUDIO,   buf, sample_aspect_ratio);
-    get_stream_info_type(ic, AVMEDIA_TYPE_VIDEO,   buf, sample_aspect_ratio);
-    get_stream_info_type(ic, AVMEDIA_TYPE_SUBTITLE,buf, sample_aspect_ratio);
+    get_stream_info_type(ic, AVMEDIA_TYPE_AUDIO,   buf, sample_aspect_ratio, mi);
+    get_stream_info_type(ic, AVMEDIA_TYPE_VIDEO,   buf, sample_aspect_ratio, mi);
+    get_stream_info_type(ic, AVMEDIA_TYPE_SUBTITLE,buf, sample_aspect_ratio, mi);
 
     //strfmon(buf + strlen(buf), 100, "strfmon: %!i\n", avio_size(ic->pb));
     return buf;
@@ -1848,7 +2062,7 @@ void dump_format_context(AVFormatContext *p, char *url, int __attribute__((unuse
         p->iformat->name, p->iformat->long_name);
 
     // dont show scaling info at this time because we dont have the proper sample_aspect_ratio
-    av_log(NULL, AV_LOG_INFO, "%s\n", get_stream_info(p, url, 0, GB_A_RATIO));
+    av_log(NULL, AV_LOG_INFO, "%s\n", get_stream_info(p, url, 0, GB_A_RATIO, NULL));
 
     av_log(NULL, AV_LOG_VERBOSE, "start_time av: %"PRId64", duration av: %"PRId64"\n",
         p->start_time, p->duration);
@@ -2980,70 +3194,80 @@ make_thumbnail(char *file)
         av_log(NULL, AV_LOG_INFO, "  changing width to %d to match movie's size (%dx%d)\n", tn.img_width, scaled_src_width, tn.column);
     }
 
-    char *all_text = get_stream_info(pFormatCtx, file, 1, sample_aspect_ratio); // FIXME: using function's static buffer
+    char *text_stream_info = get_stream_info(pFormatCtx, file, 1, sample_aspect_ratio, &tn); // FIXME: using function's static buffer
+    char *all_text = (char*)malloc(1);
+    all_text[0] = '\0';
+    char* image_text_untagged = NULL;
 
-    if (NULL != info_fp) {
-        fprintf(info_fp, "%s\n", all_text);
-    }
-    if (0 == gb_i_info) { // off
-        *all_text = '\0';
-    }
-
-    int info_text_padding = 0;
-	int timestamp_text_padding = 0;
-	int turning_off_info_text = 0;
-
-	if( gb_i_info)
-	{
-		if((info_text_padding = image_string_padding(gb_f_fontname, gb_F_info_font_size, &fcStrFlagsInfotext)) == 0)
-		{
-			av_log(NULL, AV_LOG_WARNING, "Turning off info text rendering\n");
-			gb_i_info = 0;
-			turning_off_info_text = 1;
-		}
-	}
-
-	if(gb_t_timestamp)
-	{
-		if( (turning_off_info_text && !strcmp(gb_f_fontname, gb_F_ts_fontname) && fcStrFlagsInfotext.flags == fcStrFlagsTimestamp.flags)
-			||
-			(timestamp_text_padding = image_string_padding(gb_F_ts_fontname, gb_F_ts_font_size, &fcStrFlagsTimestamp)) == 0)
-		{
-			av_log(NULL, AV_LOG_WARNING, "Turning off timestamp rendering\n");
-			gb_t_timestamp = t_timestamp = 0;
-		}
-	}
+    if (gb_i_info)
+        strcat_realloc(&all_text, "%s", text_stream_info);
 
     if (gb_T_text)
-        sprintf(all_text+strlen(all_text), "\n%s", gb_T_text);
-
-    if(gb_i_info)
-	{
-        tn.txt_height = image_string_height(all_text, gb_f_fontname, gb_F_info_font_size, &fcStrFlagsInfotext)
-						+ gb_g_gap
-						+ 2*info_text_padding;
-	}
-
-    tn.img_height = tn.shot_height_out*tn.row + gb_g_gap*(tn.row+1) + tn.txt_height;
+    {
+        char *image_text_raw = get_text_from_T_option(gb_T_text);
+        image_text_untagged = image_string_replace_tags(image_text_raw, &tn);
+        DEALLOC(image_text_raw);
+        if (gb_i_info)
+            strcat_realloc(&all_text, "\n%s", image_text_untagged);
+        else
+            strcat_realloc(&all_text, "%s", image_text_untagged);
+    }
 
     char* extra_info_text = NULL;
     sprintf_realloc(&extra_info_text, 0, "%s: %s %.1f s, %s: %dx%d, %s: %dx%d; %s: %dx%d", 
-        __("Tiles"), 
-        __("step"), tn.step_t*tn.time_base, 
-        __("grid"), tn.column, tn.row, 
-        __("tile size"), tn.shot_width_out, tn.shot_height_out, 
-        __("total size"), tn.img_width, tn.img_height);
+            __("Tiles"), 
+            __("step"), tn.step_t*tn.time_base, 
+            __("grid"), tn.column, tn.row, 
+            __("tile size"), tn.shot_width_out, tn.shot_height_out, 
+            __("total size"), tn.img_width, tn.img_height);
 
     av_log(NULL, AV_LOG_INFO, "%s\n", extra_info_text);
 
-    if (NULL != info_fp) {
-        fprintf(info_fp, "%s\n", extra_info_text);
+    if (info_fp)
+    {
+        fprintf(info_fp, "%s\n%s\n", text_stream_info, extra_info_text);
+
         if(gb_T_text)
-			fprintf(info_fp, "%s\n", gb_T_text);
+            fprintf(info_fp, "%s\n", image_text_untagged);
+    }
+    DEALLOC(extra_info_text);
+    DEALLOC(image_text_untagged);
+
+    int info_text_padding = 0;
+    int timestamp_text_padding = 0;
+    int turning_off_info_text = 0;
+
+    if(gb_i_info || gb_T_text)
+    {
+        if((info_text_padding = image_string_padding(gb_f_fontname, gb_F_info_font_size, &fcStrFlagsInfotext)) == 0)
+        {
+            av_log(NULL, AV_LOG_WARNING, "Turning off info text rendering\n");
+            gb_i_info = 0;
+            gb_T_text = NULL;
+            turning_off_info_text = 1;
+        }
     }
 
-	free(extra_info_text);
-	extra_info_text = NULL;
+    if(gb_t_timestamp)
+    {
+        if( (turning_off_info_text && !strcmp(gb_f_fontname, gb_F_ts_fontname) && fcStrFlagsInfotext.flags == fcStrFlagsTimestamp.flags)
+                ||
+                (timestamp_text_padding = image_string_padding(gb_F_ts_fontname, gb_F_ts_font_size, &fcStrFlagsTimestamp)) == 0)
+        {
+            av_log(NULL, AV_LOG_WARNING, "Turning off timestamp rendering\n");
+            gb_t_timestamp = t_timestamp = 0;
+        }
+    }
+
+    if(gb_i_info || gb_T_text)
+    {
+        tn.txt_height = image_string_height(all_text, gb_f_fontname, gb_F_info_font_size, &fcStrFlagsInfotext)
+            + gb_g_gap
+            + 2*info_text_padding;
+    }
+
+    tn.img_height = tn.shot_height_out*tn.row + gb_g_gap*(tn.row+1) + tn.txt_height;
+
 
     // jpeg seems to have max size of 65500 pixels
     if (strcasecmp(image_extension, IMAGE_EXTENSION_JPG)==0 && (tn.img_width > 65500 || tn.img_height > 65500)) {
@@ -3113,7 +3337,7 @@ make_thumbnail(char *file)
 		gdImageColorTransparent(tn.out_ip, background);
 
     /* add info & text */ // do this early so when font is not found we'll quit early
-    if (gb_i_info &&  all_text && strlen(all_text) > 0) {
+    if (all_text && strlen(all_text) > 0) {
         char *str_ret = image_string(tn.out_ip,
             gb_f_fontname, gb_F_info_color, gb_F_info_font_size,
             gb_L_info_location, gb_g_gap, all_text, 0, COLOR_WHITE, info_text_padding, &fcStrFlagsInfotext);
@@ -3578,6 +3802,7 @@ make_thumbnail(char *file)
         avformat_close_input(&pFormatCtx);
 
     thumb_cleanup_dynamic(&tn);
+    DEALLOC(all_text);
 
     av_log(NULL, AV_LOG_VERBOSE, "make_thumbnail: done\n");
     return return_code;
@@ -4181,7 +4406,7 @@ usage()
     av_log(NULL, AV_LOG_INFO, "  -s %d : time step between each shot\n", GB_S_STEP);
     av_log(NULL, AV_LOG_INFO, "  -S #: select specific stream number\n");
     av_log(NULL, AV_LOG_INFO, "  -t : time stamp off\n");
-    av_log(NULL, AV_LOG_INFO, "  -T text : add text above output image\n");
+    av_log(NULL, AV_LOG_INFO, "  -T {text | filepath} : add text above output image\n");
     av_log(NULL, AV_LOG_INFO, "  -v : verbose mode (debug)\n");
     av_log(NULL, AV_LOG_INFO, "  -w %d : width of output image; 0:column * movie width\n", GB_W_WIDTH);
     av_log(NULL, AV_LOG_INFO, "  -W : don't overwrite existing files, i.e. update mode\n");

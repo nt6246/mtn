@@ -42,7 +42,7 @@ function colouredecho {
 
 function run_mtn {
     pushd $O_DIR > /dev/null
-    CMD="$MTN $MIN_SWITCHES $*"
+    CMD="$MTN $MIN_SWITCHES $@"
     echo $CMD $VIDEO
     $CMD "$VIDEO" 2>&1 | grep -v 'shots/s, outpu' >>out.log
     popd > /dev/null
@@ -158,6 +158,16 @@ run_mtn --filters='split[main][tmp];[tmp]crop=iw/2:ih:0:0,hflip[flip];[main][fli
 colouredecho  "===> Paused with normal priority"
 tcdir normal_priority
 run_mtn -c1 -r1 -p -n
+
+colouredecho  "===> Tag in additional text (-T)"
+tcdir tags
+run_mtn -i -T 'File:_{{filename}}___Length:_{{duration}}___Size:_{{width}}x{{height}}'
+
+colouredecho  "===> File in additional text (-T)"
+tcdir text_in_file
+echo -ne "Reading text from file ... \nFilename: {{filename}} ==> {{duration}}" > my_mediainfo_text_file
+run_mtn -N _info.txt -i -T '../my_mediainfo_text_file'
+rm -f my_mediainfo_text_file
 
 unset VIDEO
 
