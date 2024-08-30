@@ -1,7 +1,7 @@
 /*  mtn - movie thumbnailer
 
-    Copyright (C) 2007-2017 tuit <tuitfun@yahoo.co.th>, et al.	 		http://moviethumbnail.sourceforge.net/
-    Copyright (C) 2017-2024 wahibre <wahibre@gmx.com>					https://gitlab.com/movie_thumbnailer/mtn/wikis
+    Copyright (C) 2007-2017 tuit <tuitfun@yahoo.co.th>, et al.          http://moviethumbnail.sourceforge.net/
+    Copyright (C) 2017-2024 wahibre <wahibre@gmx.com>                   https://gitlab.com/movie_thumbnailer/mtn/wikis
 
 
     based on "Using libavformat and libavcodec" by Martin Böhme:
@@ -252,12 +252,12 @@ char *gb_e_ext = GB_E_EXT;
 double gb_E_end = GB_E_END; // skip this seconds at the end
 #ifndef GB_F_FONTNAME
 #ifdef __APPLE__
-#	define GB_F_FONTNAME "Tahoma Bold.ttf"
+#   define GB_F_FONTNAME "Tahoma Bold.ttf"
 #else
 #ifdef _WIN32
-#	define GB_F_FONTNAME "tahomabd.ttf"
+#   define GB_F_FONTNAME "tahomabd.ttf"
 #else
-#	define GB_F_FONTNAME "DejaVuSans.ttf"
+#   define GB_F_FONTNAME "DejaVuSans.ttf"
 #endif
 #endif
 #endif
@@ -331,8 +331,8 @@ int gb_z_seek = GB_Z_SEEK; // always use seek mode; 1 on; 0 off
 int gb_Z_nonseek = GB_Z_NONSEEK; // always use non-seek mode; 1 on; 0 off
 
 /* long command line options */
-int gb__shadow=-1;				// -1 off, 0 auto, >0 manual
-int gb__transparent_bg=0;		//  0 off, 1 on
+int gb__shadow=-1;              // -1 off, 0 auto, >0 manual
+int gb__transparent_bg=0;       //  0 off, 1 on
 int gb__cover=0;                //  album art (cover image)
 int gb__webvtt=0;
 const char* gb__cover_suffix="_cover.jpg";
@@ -437,14 +437,14 @@ int vsprintf_realloc(char **s, int buffsize, const char *format, va_list args)
 
 int sprintf_realloc(char **buffer, int b_len, const char *format, ...)
 {
-	va_list args;
-	int ret;
+    va_list args;
+    int ret;
 
-	va_start(args, format);
-	ret = vsprintf_realloc(buffer, b_len, format, args);
-	va_end(args);
+    va_start(args, format);
+    ret = vsprintf_realloc(buffer, b_len, format, args);
+    va_end(args);
 
-	return ret;
+    return ret;
 }
 
 char* vstrcat_realloc(char **buffer, char *format,  va_list args)
@@ -469,14 +469,14 @@ char* vstrcat_realloc(char **buffer, char *format,  va_list args)
 
 char* strcat_realloc(char **buffer, char *format, ...)
 {
-	va_list args;
-	char* ret;
+    va_list args;
+    char* ret;
 
-	va_start(args, format);
-	ret = vstrcat_realloc(buffer, format, args);
-	va_end(args);
+    va_start(args, format);
+    ret = vstrcat_realloc(buffer, format, args);
+    va_end(args);
 
-	return ret;
+    return ret;
 }
 
 /* strrstr not in mingw
@@ -507,11 +507,11 @@ char **strsplit(char *string, const char *delimiter)
     char **tmparr = NULL;
     int arrcnt = 0;
 
-	if(string == NULL)
-		return NULL;
+    if(string == NULL)
+        return NULL;
 
-	if(delimiter == NULL)
-		return NULL;
+    if(delimiter == NULL)
+        return NULL;
 
     char *copy = strdup(string);
     char *tok = strtok(copy, delimiter);
@@ -526,8 +526,8 @@ char **strsplit(char *string, const char *delimiter)
         tok = strtok(NULL, delimiter);
     }
 
-	if(arr != NULL)
-    	arr[arrcnt] = NULL;
+    if(arr != NULL)
+        arr[arrcnt] = NULL;
 
     free(copy);
     return arr;
@@ -776,9 +776,9 @@ gdImagePtr crop_image(gdImagePtr ip, int new_width, int new_height)
 
 void dump_used_font(gdFTStringExtra *flags)
 {
-	av_log(NULL, AV_LOG_VERBOSE, "Using font: \"%s\"\n", flags->fontpath);
-	free(flags->fontpath);
-	flags->fontpath=NULL;
+    av_log(NULL, AV_LOG_VERBOSE, "Using font: \"%s\"\n", flags->fontpath);
+    free(flags->fontpath);
+    flags->fontpath=NULL;
 }
 
 /*
@@ -798,7 +798,7 @@ int image_string_height(char *text, char *font, double size, gdFTStringExtra *fc
         return 0;
     }
 
-	return brect[3] - brect[7] + LIBGD_FONT_HEIGHT_CORRECTION;
+    return brect[3] - brect[7] + LIBGD_FONT_HEIGHT_CORRECTION;
 }
 
 /*
@@ -810,16 +810,16 @@ position can be:
 returns NULL if success, otherwise returns error message
 */
 char *image_string(gdImagePtr ip,
-	char*		font,
-	rgb_color	color,
-	double 		size,
-	int 		position,
-	int 		gap,
-	char*		text,
-	int 		shadow,
-	rgb_color 	shadow_color,
-	int 		padding,
-	gdFTStringExtra* fcFlags
+    char*       font,
+    rgb_color   color,
+    double      size,
+    int         position,
+    int         gap,
+    char*       text,
+    int         shadow,
+    rgb_color   shadow_color,
+    int         padding,
+    gdFTStringExtra* fcFlags
 )
 {
     int brect[8];
@@ -829,9 +829,9 @@ char *image_string(gdImagePtr ip,
 
     if (NULL != err) {
         return err;
-	}
+    }
 
-	dump_used_font(fcFlags);
+    dump_used_font(fcFlags);
 
     int x, y;
     switch (position)
@@ -886,16 +886,16 @@ char *image_string(gdImagePtr ip,
         int gd_shadow = gdImageColorResolve(ip, shadow_color.r, shadow_color.g, shadow_color.b);
         err = gdImageStringFTEx(ip, brect, gd_shadow, font, size, 0, shadowx, shadowy, text, fcFlags);
         if (NULL != err)
-		{
-			av_log(NULL, AV_LOG_VERBOSE, "at line %d\n", __LINE__);
+        {
+            av_log(NULL, AV_LOG_VERBOSE, "at line %d\n", __LINE__);
             return err;
-		}
+        }
     }
 
-	char *gdstrret = gdImageStringFTEx(ip, brect, gd_color, font, size, 0, x, y, text, fcFlags);
+    char *gdstrret = gdImageStringFTEx(ip, brect, gd_color, font, size, 0, x, y, text, fcFlags);
 
-	if(gdstrret)
-		av_log(NULL, AV_LOG_VERBOSE, "at line %d\n", __LINE__);
+    if(gdstrret)
+        av_log(NULL, AV_LOG_VERBOSE, "at line %d\n", __LINE__);
 
     return gdstrret;
 }
@@ -1077,29 +1077,29 @@ int save_image(gdImagePtr ip, char *outname)
 
         char* image_extension = strrchr(outname, '.');
 
-		if(image_extension && strcasecmp(image_extension, IMAGE_EXTENSION_PNG) == 0 )
-			gdImagePng(ip, fp);
-		else
-			if(image_extension && strcasecmp(image_extension, IMAGE_EXTENSION_WEBP) == 0 )
+        if(image_extension && strcasecmp(image_extension, IMAGE_EXTENSION_PNG) == 0 )
+            gdImagePng(ip, fp);
+        else
+            if(image_extension && strcasecmp(image_extension, IMAGE_EXTENSION_WEBP) == 0 )
 #ifdef MTN_WITH_WEBP
-				gdImageWebp(ip, fp);
+                gdImageWebp(ip, fp);
 #else
-		{	av_log(NULL, AV_LOG_ERROR, "MTN not built with WebP support!\n");
-			return -1;
-		}
+        {   av_log(NULL, AV_LOG_ERROR, "MTN not built with WebP support!\n");
+            return -1;
+        }
 #endif
-			else
-				if(image_extension && strcasecmp(image_extension, IMAGE_EXTENSION_AVIF) == 0 )
+            else
+                if(image_extension && strcasecmp(image_extension, IMAGE_EXTENSION_AVIF) == 0 )
 #ifdef MTN_WITH_AVIF
-					gdImageAvif(ip, fp);
+                    gdImageAvif(ip, fp);
 #else
-		{
-			av_log(NULL, AV_LOG_ERROR, "MTN not built with avif support!\n");
-			return -1;
-		}
+        {
+            av_log(NULL, AV_LOG_ERROR, "MTN not built with avif support!\n");
+            return -1;
+        }
 #endif
-				else
-					gdImageJpeg (ip, fp, gb_j_quality);
+                else
+                    gdImageJpeg (ip, fp, gb_j_quality);
 
         if(fclose(fp) == 0)
             return 0;
@@ -1351,48 +1351,48 @@ gdImagePtr create_shadow_image(int background, int *INOUTradius, int width, int 
     gdImagePtr shadow;
     int shW, shH, radius=*INOUTradius;
 
-	if(radius >= 0)
-	{
-		if(radius == 0)
-			*INOUTradius = radius = MAX((int)(((double)MIN(width, height)) * 0.03), 3);
+    if(radius >= 0)
+    {
+        if(radius == 0)
+            *INOUTradius = radius = MAX((int)(((double)MIN(width, height)) * 0.03), 3);
 
-		int shadowOffset = 2*radius+1;
-		shW = width +(shadowOffset);
-		shH = height+(shadowOffset);
+        int shadowOffset = 2*radius+1;
+        shW = width +(shadowOffset);
+        shH = height+(shadowOffset);
 
-		shadow = gdImageCreateTrueColor(shW, shH);
-		if(shadow != NULL)
-		{
-			gdImageFilledRectangle(shadow, 0, 0, shW, shH, background);				//fill with background colour
-			gdImageFilledRectangle(shadow, radius+1, radius+1, width, height, 0);	//fill black rectangle as a shadow
-			//GaussianBlurred since libgd-2.1.1
-			#if((GD_MAJOR_VERSION*1000000 + GD_MINOR_VERSION*1000 + GD_RELEASE_VERSION) >= 2001001)
-			{
-				gdImagePtr blurredShadow = gdImageCopyGaussianBlurred(shadow, radius, 0);			//blur shadow
+        shadow = gdImageCreateTrueColor(shW, shH);
+        if(shadow != NULL)
+        {
+            gdImageFilledRectangle(shadow, 0, 0, shW, shH, background);             //fill with background colour
+            gdImageFilledRectangle(shadow, radius+1, radius+1, width, height, 0);   //fill black rectangle as a shadow
+            //GaussianBlurred since libgd-2.1.1
+            #if((GD_MAJOR_VERSION*1000000 + GD_MINOR_VERSION*1000 + GD_RELEASE_VERSION) >= 2001001)
+            {
+                gdImagePtr blurredShadow = gdImageCopyGaussianBlurred(shadow, radius, 0);           //blur shadow
 
-				if(blurredShadow != NULL)
-				{
-					gdImageDestroy(shadow);
-					av_log(NULL, AV_LOG_INFO, "  thumbnail shadow radius: %dpx \n", radius);
-					if(gb_g_gap < shadowOffset)
-						av_log(NULL, AV_LOG_INFO, "  thumbnail shadow might be invisible. Consider increase gap between individual shots (-g %d).\n", shadowOffset);
-					return blurredShadow;
-				}
-				else
-					av_log(NULL, AV_LOG_ERROR, "Can't blur Shadow Image!\n");
-			}
-			#else
-			{
-				av_log(NULL, AV_LOG_INFO, "Can't blur Shadow Image. Libgd does not support blurring. Use version libgd-2.1.1 or newer.\n");
-				return shadow;
-			}
+                if(blurredShadow != NULL)
+                {
+                    gdImageDestroy(shadow);
+                    av_log(NULL, AV_LOG_INFO, "  thumbnail shadow radius: %dpx \n", radius);
+                    if(gb_g_gap < shadowOffset)
+                        av_log(NULL, AV_LOG_INFO, "  thumbnail shadow might be invisible. Consider increase gap between individual shots (-g %d).\n", shadowOffset);
+                    return blurredShadow;
+                }
+                else
+                    av_log(NULL, AV_LOG_ERROR, "Can't blur Shadow Image!\n");
+            }
+            #else
+            {
+                av_log(NULL, AV_LOG_INFO, "Can't blur Shadow Image. Libgd does not support blurring. Use version libgd-2.1.1 or newer.\n");
+                return shadow;
+            }
             #endif
-		}
-		else
-			av_log(NULL, AV_LOG_ERROR, "Couldn't create Image in Size %dx%d!\n", shW, shH);
-	}
-	else
-		av_log(NULL, AV_LOG_ERROR, "Shadow can't have negative value! (see option --shadow) \n");
+        }
+        else
+            av_log(NULL, AV_LOG_ERROR, "Couldn't create Image in Size %dx%d!\n", shW, shH);
+    }
+    else
+        av_log(NULL, AV_LOG_ERROR, "Shadow can't have negative value! (see option --shadow) \n");
 
     return NULL;
 }
@@ -1409,7 +1409,7 @@ void thumb_add_shot(thumbnail *ptn, gdImagePtr ip, gdImagePtr thumbShadowIm, int
         + ((3 == gb_L_info_location || 4 == gb_L_info_location) ? ptn->txt_height : 0);
 
     if(gb__shadow > 0 && thumbShadowIm!=NULL)
-		gdImageCopy(ptn->out_ip, thumbShadowIm, dstX+gb__shadow+1, dstY+gb__shadow+1, 0, 0, gdImageSX(thumbShadowIm), gdImageSY(thumbShadowIm));
+        gdImageCopy(ptn->out_ip, thumbShadowIm, dstX+gb__shadow+1, dstY+gb__shadow+1, 0, 0, gdImageSX(thumbShadowIm), gdImageSY(thumbShadowIm));
 
     gdImageCopy(ptn->out_ip, ip, dstX, dstY, 0, 0, ptn->shot_width_out, ptn->shot_height_out);
     ptn->idx = idx;
@@ -1873,19 +1873,19 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
         if(AVMEDIA_TYPE_AUDIO == st->codecpar->codec_type)
         {
             // for the first audio source
-            if(mi && mi->acodec == NULL) 
+            if(mi && mi->acodec == NULL)
                 mi->acodec = strdup(avcodec_get_name(pCodexCtx->codec_id));
         }
 
         if(AVMEDIA_TYPE_VIDEO == st->codecpar->codec_type)
         {
             // for the first video source
-            if(mi && mi->vcodec == NULL) 
+            if(mi && mi->vcodec == NULL)
                 mi->vcodec = strdup(avcodec_get_name(pCodexCtx->codec_id));
         }
 
 /* to remove [SAR DAR] from string ...
-        
+
 
         char *begin = NULL, *end = NULL;
         if ((begin=strstr(codec_buf, " [SAR")) != NULL
@@ -1998,7 +1998,7 @@ char *get_stream_info(AVFormatContext *ic, char *url, int strip_path, AVRational
 
     /* file format
     sprintf(buf + strlen(buf), " (%s)", ic->iformat->name);*/
-    
+
     char* size_lc = __("Size");
     char* formated_size = format_size(file_size);
 
@@ -2845,7 +2845,7 @@ make_thumbnail(char *file)
         }
     }
 
-	// idenfity thumbnail image extension
+    // idenfity thumbnail image extension
     char image_extension[6];
     {
         char *suffix = strrchr(tn.out_filename, '.');
@@ -3323,18 +3323,18 @@ make_thumbnail(char *file)
     /* setting alpha blending is not needed, using default mode:
      * https://libgd.github.io/manuals/2.2.5/files/gd-h.html#Effects
     gdImageAlphaBlending(tn.out_ip,
-		//gdEffectReplace		//replace pixels
-		gdEffectAlphaBlend	   	//blend pixels, see gdAlphaBlend
-		//gdEffectNormal		//default mode; same as gdEffectAlphaBlend
-		//gdEffectOverlay		//overlay pixels, see gdLayerOverlay
-		//gdEffectMultiply	//overlay pixels with multiply effect, see gdLayerMultiply
+        //gdEffectReplace       //replace pixels
+        gdEffectAlphaBlend      //blend pixels, see gdAlphaBlend
+        //gdEffectNormal        //default mode; same as gdEffectAlphaBlend
+        //gdEffectOverlay       //overlay pixels, see gdLayerOverlay
+        //gdEffectMultiply  //overlay pixels with multiply effect, see gdLayerMultiply
     );
     */
     int background = gdImageColorResolve(tn.out_ip, gb_k_bcolor.r, gb_k_bcolor.g, gb_k_bcolor.b);
     gdImageFilledRectangle(tn.out_ip, 0, 0, tn.img_width, tn.img_height, background);
 
-	if(gb__transparent_bg)
-		gdImageColorTransparent(tn.out_ip, background);
+    if(gb__transparent_bg)
+        gdImageColorTransparent(tn.out_ip, background);
 
     /* add info & text */ // do this early so when font is not found we'll quit early
     if (all_text && strlen(all_text) > 0) {
@@ -3347,11 +3347,11 @@ make_thumbnail(char *file)
         }
     }
 
-	/* if needed create shadow image used for every shot	*/
-	if(gb__shadow >= 0){
-		if((thumbShadowIm = create_shadow_image(background, &gb__shadow, tn.shot_width_out, tn.shot_height_out)) == NULL)
-			goto cleanup;
-	}
+    /* if needed create shadow image used for every shot    */
+    if(gb__shadow >= 0){
+        if((thumbShadowIm = create_shadow_image(background, &gb__shadow, tn.shot_width_out, tn.shot_height_out)) == NULL)
+            goto cleanup;
+    }
 
     /* alloc dynamic thumb data */
     if (-1 == thumb_alloc_dynamic(&tn)) {
@@ -3714,36 +3714,36 @@ make_thumbnail(char *file)
     if (0 != skipped_rows) {
         int cropped_height = tn.img_height - skipped_rows*tn.shot_height_out;
 
-		tn.img_height = cropped_height;
-		tn.row = created_rows;
-		cropp_needed = 1;
+        tn.img_height = cropped_height;
+        tn.row = created_rows;
+        cropp_needed = 1;
     }
 
-	if(created_rows == 1)
-	{
-		const int created_cols = idx;
+    if(created_rows == 1)
+    {
+        const int created_cols = idx;
 
-		if(created_cols < tn.column)
-		{
-			int cropped_width = tn.img_width - (tn.column-created_cols)*tn.shot_width_out;
+        if(created_cols < tn.column)
+        {
+            int cropped_width = tn.img_width - (tn.column-created_cols)*tn.shot_width_out;
 
             tn.img_width = cropped_width;
             tn.column = created_cols;
             cropp_needed = 1;
-		}
-	}
+        }
+    }
 
-	if(cropp_needed == 1)
-	{
-		tn.out_ip = crop_image(tn.out_ip, tn.img_width, tn.img_height);
+    if(cropp_needed == 1)
+    {
+        tn.out_ip = crop_image(tn.out_ip, tn.img_width, tn.img_height);
 
-		av_log(NULL, AV_LOG_INFO, "  changing # of tiles to %dx%d because of skipped shots; total size: %dx%d\n",
-			tn.column,
-			tn.row,
-			tn.img_width,
-			tn.img_height
-		);
-	}
+        av_log(NULL, AV_LOG_INFO, "  changing # of tiles to %dx%d because of skipped shots; total size: %dx%d\n",
+            tn.column,
+            tn.row,
+            tn.img_width,
+            tn.img_height
+        );
+    }
 
     /* save output image */
     if(save_image(tn.out_ip, tn.out_filename) == 0)
@@ -3828,10 +3828,10 @@ return 1 if filename has one of the predefined extensions
 int check_extension(char *filename)
 {
     if(filename == NULL)
-		return 0;
+        return 0;
 
     if(movie_ext == NULL) // empty extension filter -> all files are valid
-		return 1;
+        return 1;
 
     static int sorted = 0; // 1 = sorted
 
@@ -4173,26 +4173,26 @@ int get_format_opt(char c, char *optarg)
     char substr_protector = 0;
     short substr_protected = 0;
 
-    // change delimiter for a safe one to be able detect windows drive letter 
+    // change delimiter for a safe one to be able detect windows drive letter
     // in filepath (e.g. C:\path\to\.ttf)
     size_t i;
     for(i=0; i<strlen(optarg); i++)
     {
-		if(!substr_protected)
-		{
-			if(optarg[i] == '"' || optarg[i] == '`' || optarg[i] == '\'')
-			{
-				substr_protector = optarg[i];
-				substr_protected = !substr_protected;
-				continue;
-			}
+        if(!substr_protected)
+        {
+            if(optarg[i] == '"' || optarg[i] == '`' || optarg[i] == '\'')
+            {
+                substr_protector = optarg[i];
+                substr_protected = !substr_protected;
+                continue;
+            }
 
-			if(optarg[i] == opt_delimiter)
-				optarg[i] = safe_delimiter;
-		}
-		
-		if(substr_protected && optarg[i] == substr_protector)
-				substr_protected = !substr_protected;
+            if(optarg[i] == opt_delimiter)
+                optarg[i] = safe_delimiter;
+        }
+
+        if(substr_protected && optarg[i] == substr_protector)
+                substr_protected = !substr_protected;
     }
 
     // info text font color
@@ -4219,7 +4219,7 @@ int get_format_opt(char c, char *optarg)
         gb_F_ts_font_size = gb_F_info_font_size - 1;
         goto cleanup;
     }
-    
+
     if(token[0] == substr_protector)
     {
         char *newtsfont = strdup(token);
@@ -4230,8 +4230,8 @@ int get_format_opt(char c, char *optarg)
         gb_F_ts_fontname = newtsfont;
     }
     else
-		gb_F_ts_fontname = token;
-    
+        gb_F_ts_fontname = token;
+
     // time stamp font color
     token = strtok (NULL, delim);
     if (NULL == token || -1 == parse_color(&gb_F_ts_color , token)) {
@@ -4337,12 +4337,12 @@ char* mtn_identification()
     const char txt[] = "Movie Thumbnailer (mtn) %s\nCompiled%s with FFmpeg %s (%s %s %s %s), GD %s, WebP %s, Avif %s";
     const char* FFMPEG_IDENT = av_version_info();
     const char GD_VER[] =
-	   #ifdef GD_VERSION_STRING
+       #ifdef GD_VERSION_STRING
            GD_VERSION_STRING
        #else
            GD2_ID
         #endif
-	;
+    ;
     const char STATIC_MSG[] =
         #ifdef MTN_STATIC
             " statically"
@@ -4351,24 +4351,24 @@ char* mtn_identification()
         #endif
             ;
 
-	const char* WEBP_IDENT =
+    const char* WEBP_IDENT =
 #ifdef MTN_WITH_WEBP
-		"enabled";
+        "enabled";
 #else
-	"n/a";
+    "n/a";
 #endif
 
-	const char* AVIF_IDENT =
+    const char* AVIF_IDENT =
 #ifdef MTN_WITH_AVIF
-		"enabled";
+        "enabled";
 #else
-	"n/a";
+    "n/a";
 #endif
 
     size_t s = snprintf(NULL, 0, txt, gb_version, STATIC_MSG, FFMPEG_IDENT, LIBAVCODEC_IDENT, LIBAVFORMAT_IDENT, LIBAVUTIL_IDENT, LIBSWSCALE_IDENT, GD_VER, WEBP_IDENT, AVIF_IDENT) +1;
-	char* msg = malloc(s);
+    char* msg = malloc(s);
                snprintf( msg, s, txt, gb_version, STATIC_MSG, FFMPEG_IDENT, LIBAVCODEC_IDENT, LIBAVFORMAT_IDENT, LIBAVUTIL_IDENT, LIBSWSCALE_IDENT, GD_VER, WEBP_IDENT, AVIF_IDENT);
-	return msg;
+    return msg;
 }
 
 void
@@ -4487,17 +4487,17 @@ int main(int argc, char *argv[])
     /* get & check options */
 
 
-	struct option long_options[] = {		// no_argument, required_argument, optional_argument
-		{"shadow",                optional_argument,  0,  0 },
-		{"transparent",           no_argument,        0,  0 },
-		{"cover",                 optional_argument,  0,  0 },
-		{"vtt",                   optional_argument,  0,  0 },
-		{"options",               required_argument,  0,  0 },
-		{"filters",               required_argument,  0,  0 },
-		{"filter-color-primaries",required_argument,  0,  0 },
-		{"tonemap",               optional_argument,  0,  0 },
-		{0,                       0,                  0,  0 }
-	};
+    struct option long_options[] = {        // no_argument, required_argument, optional_argument
+        {"shadow",                optional_argument,  0,  0 },
+        {"transparent",           no_argument,        0,  0 },
+        {"cover",                 optional_argument,  0,  0 },
+        {"vtt",                   optional_argument,  0,  0 },
+        {"options",               required_argument,  0,  0 },
+        {"filters",               required_argument,  0,  0 },
+        {"filter-color-primaries",required_argument,  0,  0 },
+        {"tonemap",               optional_argument,  0,  0 },
+        {0,                       0,                  0,  0 }
+    };
     int parse_error = 0, option_index = 0;
     int c;
     while (-1 != (c = getopt_long(argc, argv, "a:b:B:c:C:d:D:e:E:f:F:g:h:HiI:j:k:L:nN:o:O:pPqr:s:S:tT:vVw:Wx:XzZ", long_options, &option_index))) {
@@ -4602,7 +4602,7 @@ int main(int argc, char *argv[])
                 parse_error++;
             }
             break;
-//		case 'A':
+//      case 'A':
         case 'b':
             parse_error += get_double_opt('b', &gb_b_blank, optarg, 0);
             if (gb_b_blank < .2) {
@@ -4632,7 +4632,7 @@ int main(int argc, char *argv[])
                 av_log(NULL, AV_LOG_INFO, "%s: -D%d might be too extreme; try -D4, -D6, or -D8\n", gb_argv0, gb_D_edge);
             }
             break;
-		case 'e':
+        case 'e':
             gb_e_ext = optarg;
             break;
         case 'E':
@@ -4647,7 +4647,7 @@ int main(int argc, char *argv[])
         case 'g':
             parse_error += get_int_opt("g", &gb_g_gap, optarg, 0);
             break;
-//		case 'G':
+//      case 'G':
         case 'h':
             parse_error += get_int_opt("h", &gb_h_height, optarg, 0);
             break;
@@ -4664,17 +4664,17 @@ int main(int argc, char *argv[])
         case 'j':
             parse_error += get_int_opt("j", &gb_j_quality, optarg, 1);
             break;
-//		case 'J':
+//      case 'J':
         case 'k': // background color
             parse_error += get_color_opt('k', &gb_k_bcolor, optarg);
             break;
-//		case 'K':
+//      case 'K':
 //      case 'l':
         case 'L':
             parse_error += get_location_opt('L', optarg);
             break;
-//		case 'm':
-//		case 'M':
+//      case 'm':
+//      case 'M':
         case 'n':
             gb_n_normal = 1; // normal priority
             break;
@@ -4697,11 +4697,11 @@ int main(int argc, char *argv[])
         case 'q':
             gb_q_quiet = 1; //quiet
             break;
-//		case 'Q':
+//      case 'Q':
         case 'r':
             parse_error += get_int_opt("r", &gb_r_row, optarg, 0);
             break;
-//		case 'R':
+//      case 'R':
         case 's':
             parse_error += get_int_opt("s", &gb_s_step, optarg, 0);
             break;
@@ -4710,14 +4710,14 @@ int main(int argc, char *argv[])
             break;
         case 't':
             gb_t_timestamp = 0; // off
-			fcStrFlagsTimestamp.flags |= gdFTEX_FONTCONFIG;
-			fcStrFlagsTimestamp.flags &= ~gdFTEX_FONTPATHNAME;
+            fcStrFlagsTimestamp.flags |= gdFTEX_FONTCONFIG;
+            fcStrFlagsTimestamp.flags &= ~gdFTEX_FONTPATHNAME;
             break;
         case 'T':
             gb_T_text = optarg;
             break;
-//		case 'u':
-//		case 'U':
+//      case 'u':
+//      case 'U':
         case 'v':
             gb_v_verbose = 1; // verbose
             break;
@@ -4731,14 +4731,14 @@ int main(int argc, char *argv[])
         case 'W':
             gb_W_overwrite = 0;
             break;
-		case 'x':
+        case 'x':
             gb_x_basename_custom = optarg;
             break;
         case 'X':
             gb_X_filename_use_full = 1;
             break;
-//		case 'y':
-//		case 'Y':
+//      case 'y':
+//      case 'Y':
         case 'z':
             gb_z_seek = 1; // always seek mode
             break;
@@ -4780,33 +4780,33 @@ int main(int argc, char *argv[])
 
 
     /* gdFTUseFontConfig(1);  => no needed, using gdImageStringFTEx */
-	fcStrFlagsInfotext.flags  =
-	fcStrFlagsTimestamp.flags = gdFTEX_RETURNFONTPATHNAME;
+    fcStrFlagsInfotext.flags  =
+    fcStrFlagsTimestamp.flags = gdFTEX_RETURNFONTPATHNAME;
 
-	if (!strcmp(gb_f_fontname, GB_F_FONTNAME) || is_reg(gb_f_fontname)==0)
-	{
-	 	fcStrFlagsInfotext.flags |= gdFTEX_FONTCONFIG;
-		av_log(NULL, AV_LOG_VERBOSE, "Text info will be rendered with \"%s\" using FontConfig\n", gb_f_fontname);
-	}
-	else
-	{
-	 	fcStrFlagsInfotext.flags |= gdFTEX_FONTPATHNAME;
-		av_log(NULL, AV_LOG_VERBOSE, "Text info will be rendered using \"%s\" file\n", gb_f_fontname);
-	}
-	
-	if(gb_F_ts_fontname == NULL)
-		gb_F_ts_fontname = gb_f_fontname;
+    if (!strcmp(gb_f_fontname, GB_F_FONTNAME) || is_reg(gb_f_fontname)==0)
+    {
+        fcStrFlagsInfotext.flags |= gdFTEX_FONTCONFIG;
+        av_log(NULL, AV_LOG_VERBOSE, "Text info will be rendered with \"%s\" using FontConfig\n", gb_f_fontname);
+    }
+    else
+    {
+        fcStrFlagsInfotext.flags |= gdFTEX_FONTPATHNAME;
+        av_log(NULL, AV_LOG_VERBOSE, "Text info will be rendered using \"%s\" file\n", gb_f_fontname);
+    }
 
-	if (!strcmp(gb_F_ts_fontname, GB_F_FONTNAME) || is_reg(gb_F_ts_fontname)==0)
-	{
-	 	fcStrFlagsTimestamp.flags |= gdFTEX_FONTCONFIG;
-		av_log(NULL, AV_LOG_VERBOSE, "Timestamp info will be rendered with \"%s\" using FontConfig\n", gb_F_ts_fontname);
-	}
-	else
-	{
-	 	fcStrFlagsTimestamp.flags |= gdFTEX_FONTPATHNAME;
-		av_log(NULL, AV_LOG_VERBOSE, "Text info will be rendered using \"%s\" file\n", gb_F_ts_fontname);
-	}
+    if(gb_F_ts_fontname == NULL)
+        gb_F_ts_fontname = gb_f_fontname;
+
+    if (!strcmp(gb_F_ts_fontname, GB_F_FONTNAME) || is_reg(gb_F_ts_fontname)==0)
+    {
+        fcStrFlagsTimestamp.flags |= gdFTEX_FONTCONFIG;
+        av_log(NULL, AV_LOG_VERBOSE, "Timestamp info will be rendered with \"%s\" using FontConfig\n", gb_F_ts_fontname);
+    }
+    else
+    {
+        fcStrFlagsTimestamp.flags |= gdFTEX_FONTPATHNAME;
+        av_log(NULL, AV_LOG_VERBOSE, "Text info will be rendered using \"%s\" file\n", gb_F_ts_fontname);
+    }
 
 
     if((movie_ext = strsplit(gb_e_ext, ",")) == NULL)
@@ -4837,11 +4837,11 @@ int main(int argc, char *argv[])
 #ifdef _WIN32
         SetPriorityClass(GetCurrentProcess(), IDLE_PRIORITY_CLASS);
 #else
-		errno = 0;
+        errno = 0;
         int nice_ret = nice(10); // mingw doesn't have nice??
         //setpriority (PRIO_PROCESS, 0, PRIO_MAX/2);
-		if(nice_ret == -1 && errno != 0)
-			av_log(NULL, AV_LOG_ERROR, "error setting process priority (nice=10)\n");
+        if(nice_ret == -1 && errno != 0)
+            av_log(NULL, AV_LOG_ERROR, "error setting process priority (nice=10)\n");
 #endif
     }
 
@@ -4866,20 +4866,20 @@ int main(int argc, char *argv[])
     avformat_network_init();    // optional since FFmpeg 4.0
 #endif
 
-	if(gb_q_quiet>0)
-		av_log_set_level(AV_LOG_ERROR);
-	else
-	{
-		if (gb_v_verbose > 0)
-			av_log_set_level(AV_LOG_VERBOSE);
-		else
-			av_log_set_level(AV_LOG_INFO);
+    if(gb_q_quiet>0)
+        av_log_set_level(AV_LOG_ERROR);
+    else
+    {
+        if (gb_v_verbose > 0)
+            av_log_set_level(AV_LOG_VERBOSE);
+        else
+            av_log_set_level(AV_LOG_INFO);
 
         av_log_set_flags(AV_LOG_SKIP_REPEATED);
-	}
+    }
 
-	// display mtn+libraries versions for bug reporting
-	av_log(NULL, AV_LOG_VERBOSE, "%s\n\n", mtn_identification());
+    // display mtn+libraries versions for bug reporting
+    av_log(NULL, AV_LOG_VERBOSE, "%s\n\n", mtn_identification());
 
 
     av_log(NULL, AV_LOG_VERBOSE, "locale lang:   %s\n", setlocale(LC_ALL, ""));
