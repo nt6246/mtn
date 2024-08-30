@@ -44,7 +44,7 @@ function run_mtn {
     pushd $O_DIR > /dev/null
     CMD="$MTN $MIN_SWITCHES $@"
     echo $CMD $VIDEO
-    $CMD "$VIDEO" 2>&1 | grep -v 'shots/s, outpu' >>out.log
+    $CMD "$VIDEO" 2>&1 | grep -v 'shots/s. outpu' >>out.log
     popd > /dev/null
 }
 

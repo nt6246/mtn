@@ -3213,26 +3213,6 @@ make_thumbnail(char *file)
             strcat_realloc(&all_text, "%s", image_text_untagged);
     }
 
-    char* extra_info_text = NULL;
-    sprintf_realloc(&extra_info_text, 0, "%s: %s %.1f s, %s: %dx%d, %s: %dx%d; %s: %dx%d", 
-            __("Tiles"), 
-            __("step"), tn.step_t*tn.time_base, 
-            __("grid"), tn.column, tn.row, 
-            __("tile size"), tn.shot_width_out, tn.shot_height_out, 
-            __("total size"), tn.img_width, tn.img_height);
-
-    av_log(NULL, AV_LOG_INFO, "%s\n", extra_info_text);
-
-    if (info_fp)
-    {
-        fprintf(info_fp, "%s\n%s\n", text_stream_info, extra_info_text);
-
-        if(gb_T_text)
-            fprintf(info_fp, "%s\n", image_text_untagged);
-    }
-    DEALLOC(extra_info_text);
-    DEALLOC(image_text_untagged);
-
     int info_text_padding = 0;
     int timestamp_text_padding = 0;
     int turning_off_info_text = 0;
@@ -3267,6 +3247,26 @@ make_thumbnail(char *file)
     }
 
     tn.img_height = tn.shot_height_out*tn.row + gb_g_gap*(tn.row+1) + tn.txt_height;
+
+    char* extra_info_text = NULL;
+    sprintf_realloc(&extra_info_text, 0, "%s: %s %.1f s, %s: %dx%d, %s: %dx%d; %s: %dx%d",
+            __("Tiles"),
+            __("step"), tn.step_t*tn.time_base,
+            __("grid"), tn.column, tn.row,
+            __("tile size"), tn.shot_width_out, tn.shot_height_out,
+            __("total size"), tn.img_width, tn.img_height);
+
+    av_log(NULL, AV_LOG_INFO, "%s\n", extra_info_text);
+
+    if (info_fp)
+    {
+        fprintf(info_fp, "%s\n%s\n", text_stream_info, extra_info_text);
+
+        if(gb_T_text)
+            fprintf(info_fp, "%s\n", image_text_untagged);
+    }
+    DEALLOC(extra_info_text);
+    DEALLOC(image_text_untagged);
 
 
     // jpeg seems to have max size of 65500 pixels
@@ -3950,7 +3950,11 @@ int process_dir(char *dir, int current_depth)
         //av_log(NULL, AV_LOG_INFO, "process_dir added: %s\n", v[cnt-1]); // DEBUG
     }
 
-    assert(v != NULL);
+    assert((v && cnt > 0) || (!v && cnt == 0));
+
+    if(v == NULL)
+        return 0;
+
     qsort(v, cnt, sizeof(*v), myalphasort);
 
     /* process dirs & files */
