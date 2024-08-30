@@ -42,9 +42,13 @@ function colouredecho {
 
 function run_mtn {
     pushd $O_DIR > /dev/null
-    CMD="$MTN $MIN_SWITCHES $@"
-    echo $CMD $VIDEO
-    $CMD "$VIDEO" 2>&1 | grep -v 'shots/s. outpu' >>out.log
+    if [ -z VIDEO ]; then
+        CMD="$MTN $MIN_SWITCHES $@"
+    else
+        CMD="$MTN $MIN_SWITCHES $@ $VIDEO"
+    fi
+    echo $CMD
+    $CMD 2>&1 | grep -v 'shots/s. outpu' >>out.log
     popd > /dev/null
 }
 
