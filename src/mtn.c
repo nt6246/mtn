@@ -178,13 +178,14 @@ typedef struct thumbnail
     char info_filename[UTF8_FILENAME_SIZE];
     char cover_filename[UTF8_FILENAME_SIZE];
     int out_saved;                          // 1 = out file is successfully saved
-    int img_width, img_height;
+    int pic_width, pic_height;              // dimension of the decoded picture
+    int img_width, img_height;              // dimension of the output image
     int txt_height;
     int column, row;
     double time_base;
     int64_t step_t;                         // in timebase units
-    int shot_width_in,  shot_height_in;     // dimension stored in movie file
-    int shot_width_out, shot_height_out;    // dimension  after possible rotation
+    int shot_width_in,  shot_height_in;     // scaled dimension
+    int shot_width_out, shot_height_out;    // scaled dimension after possible rotation
     int center_gap;                         // horizontal gap to center the shots
     int idx;                                // index of the last shot; -1 = no shot
     int tiles_nr;                           // number of shots in thumbnail
@@ -781,6 +782,21 @@ void dump_used_font(gdFTStringExtra *flags)
     flags->fontpath=NULL;
 }
 
+void dump_thumbnail(const thumbnail* const tn)
+{
+    av_log(NULL, AV_LOG_INFO, "-------------- Thumbnail --------------\n");
+    av_log(NULL, AV_LOG_INFO, "filenamebase \t%s\n", tn->filename);
+    av_log(NULL, AV_LOG_INFO, "out_filename \t%s\n", tn->out_filename);
+    av_log(NULL, AV_LOG_INFO, "info_filename \t%s\n", tn->info_filename);
+    av_log(NULL, AV_LOG_INFO, "cover_filename \t%s\n", tn->cover_filename);
+    av_log(NULL, AV_LOG_INFO, "out_saved    \t%d\n", tn->out_saved);
+    av_log(NULL, AV_LOG_INFO, "img_width    \t%d\n", tn->img_width);
+    av_log(NULL, AV_LOG_INFO, "img_height   \t%d\n", tn->img_height);
+    av_log(NULL, AV_LOG_INFO, "pic_width    \t%d\n", tn->pic_width);
+    av_log(NULL, AV_LOG_INFO, "pic_height   \t%d\n", tn->pic_height);
+    av_log(NULL, AV_LOG_INFO, "---------------------------------------\n");
+}
+
 /*
 returns height, or 0 if error
 */
@@ -922,9 +938,9 @@ char* find_tag_value(char* tagname, thumbnail *tn)
     else if(!strcmp(tagname, "size"))
         sprintf_realloc(&value, 0, "%s", tn->size);
     else if(!strcmp(tagname, "width"))
-        sprintf_realloc(&value, 0, "%d", tn->shot_width_in);
+        sprintf_realloc(&value, 0, "%d", tn->pic_width);
     else if(!strcmp(tagname, "height"))
-        sprintf_realloc(&value, 0, "%d", tn->shot_height_in);
+        sprintf_realloc(&value, 0, "%d", tn->pic_height);
     else if(!strcmp(tagname, "duration"))
         sprintf_realloc(&value, 0, "%s", tn->duration);
     else if(!strcmp(tagname, "framerate"))
@@ -1136,6 +1152,7 @@ void thumb_new(thumbnail *ptn)
     ptn->cover_filename[0] = '\0';
     ptn->out_saved = 0;
     ptn->img_width = ptn->img_height = 0;
+    ptn->pic_width = ptn->pic_height = 0;
     ptn->txt_height = 0;
     ptn->column = ptn->row = 0;
     ptn->step_t = 0;
@@ -2974,6 +2991,9 @@ make_thumbnail(char *file)
         goto cleanup;
     }
 
+    tn.pic_width = pCodecCtx->width;
+    tn.pic_height = pCodecCtx->height;
+
     // Allocate video frame
     pFrame = av_frame_alloc();
     if (pFrame == NULL) {
@@ -3212,6 +3232,7 @@ make_thumbnail(char *file)
         else
             strcat_realloc(&all_text, "%s", image_text_untagged);
     }
+
 
     int info_text_padding = 0;
     int timestamp_text_padding = 0;
