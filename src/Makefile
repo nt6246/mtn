@@ -63,6 +63,7 @@ S_LIBS= -static-libgcc -static \
 	$(LIBSDIR)/FFmpeg/libavutil/libavutil.a \
 	$(LIBSDIR)/FFmpeg/libavcodec/libavcodec.a \
 	$(LIBSDIR)/libgd/Bin/libgd.a \
+	$(S_LIBS_EXTRA) \
     -lpthread -lbz2 -lfontconfig -lfreetype -lbrotlidec -lbrotlicommon -lexpat -ljpeg -lpng16 -lwebp -lz -lzimg -lm -lstdc++
 
 build: $(OUT)/mtn

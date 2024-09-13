@@ -138,6 +138,9 @@ typedef struct rgb_color
 typedef char color_str[7]; // "RRGGBB" (in hex)
 
 #define PROJNAME "mtn"
+#ifndef MTN_VERSION 
+#define MTN_VERSION "3.5.0"
+#endif
 #define COLOR_BLACK (rgb_color){0, 0, 0}
 #define COLOR_WHITE (rgb_color){255, 255, 255}
 #define COLOR_INFO (rgb_color){85, 85, 85}
@@ -345,7 +348,6 @@ int gb__tonemap = 0;
 
 /* more global variables */
 char *gb_argv0 = NULL;
-const char *gb_version = "3.5.0";
 time_t gb_st_start = 0; // start time of program
 char **movie_ext = NULL;
 
@@ -4386,9 +4388,9 @@ char* mtn_identification()
     "n/a";
 #endif
 
-    size_t s = snprintf(NULL, 0, txt, gb_version, STATIC_MSG, FFMPEG_IDENT, LIBAVCODEC_IDENT, LIBAVFORMAT_IDENT, LIBAVUTIL_IDENT, LIBSWSCALE_IDENT, GD_VER, WEBP_IDENT, AVIF_IDENT) +1;
+    size_t s = snprintf(NULL, 0, txt, MTN_VERSION, STATIC_MSG, FFMPEG_IDENT, LIBAVCODEC_IDENT, LIBAVFORMAT_IDENT, LIBAVUTIL_IDENT, LIBSWSCALE_IDENT, GD_VER, WEBP_IDENT, AVIF_IDENT) +1;
     char* msg = malloc(s);
-               snprintf( msg, s, txt, gb_version, STATIC_MSG, FFMPEG_IDENT, LIBAVCODEC_IDENT, LIBAVFORMAT_IDENT, LIBAVUTIL_IDENT, LIBSWSCALE_IDENT, GD_VER, WEBP_IDENT, AVIF_IDENT);
+               snprintf( msg, s, txt, MTN_VERSION, STATIC_MSG, FFMPEG_IDENT, LIBAVCODEC_IDENT, LIBAVFORMAT_IDENT, LIBAVUTIL_IDENT, LIBSWSCALE_IDENT, GD_VER, WEBP_IDENT, AVIF_IDENT);
     return msg;
 }
 
