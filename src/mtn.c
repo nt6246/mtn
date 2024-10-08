@@ -138,7 +138,7 @@ typedef struct rgb_color
 typedef char color_str[7]; // "RRGGBB" (in hex)
 
 #define PROJNAME "mtn"
-#ifndef MTN_VERSION 
+#ifndef MTN_VERSION
 #define MTN_VERSION "3.5.0"
 #endif
 #define COLOR_BLACK (rgb_color){0, 0, 0}
@@ -2776,9 +2776,12 @@ int
 make_thumbnail(char *file)
 {
     int return_code = -1;
+    int nr_warnings = 0;
     av_log(NULL, AV_LOG_VERBOSE, "make_thumbnail: %s\n", file);
     int idx = 0;
     int thumb_nb = 0;
+    char* l__filters = gb__filters ? strdup(gb__filters) : NULL;
+    char* l__filter_color_primaries = gb__filter_color_primaries ? strdup(gb__filter_color_primaries) : NULL;
 
     struct timeval tstart;
     gettimeofday(&tstart, NULL);
@@ -3010,7 +3013,7 @@ make_thumbnail(char *file)
     AVFilterContext *buffersrc_ctx = NULL;
     AVFilterGraph *filter_graph = NULL;
 
-    if(gb__filters)
+    if(l__filters)
     {
         // initialize filters (FFmpeg/doc/examples/filtering_video.c)
         AVCodecContext *dec_ctx = pCodecCtx;
@@ -3054,7 +3057,7 @@ make_thumbnail(char *file)
         inputs->pad_idx    = 0;
         inputs->next       = NULL;
 
-        if(avfilter_graph_parse_ptr(filter_graph, gb__filters, &inputs, &outputs, NULL)<0)
+        if(avfilter_graph_parse_ptr(filter_graph, l__filters, &inputs, &outputs, NULL)<0)
             goto cleanup;
 
         if (avfilter_graph_config(filter_graph, NULL) < 0)
@@ -3063,8 +3066,8 @@ make_thumbnail(char *file)
         avfilter_inout_free(&inputs);
         avfilter_inout_free(&outputs);
 
-        if(gb__filter_color_primaries)
-            filter_color_primaries_match = av_match_list(codec_color_primaries, gb__filter_color_primaries, ',');
+        if(l__filter_color_primaries)
+            filter_color_primaries_match = av_match_list(codec_color_primaries, l__filter_color_primaries, ',');
     }
 
     // keep a copy of sample_aspect_ratio because it might be changed after
@@ -3528,7 +3531,7 @@ make_thumbnail(char *file)
             goto skip_shot;
         }
 
-        if(gb__filters && filter_color_primaries_match)
+        if(l__filters && filter_color_primaries_match)
         {
             av_log(NULL, AV_LOG_VERBOSE, "Aplying filtergraph to the frame\n");
 
@@ -3538,7 +3541,8 @@ make_thumbnail(char *file)
             if (av_buffersrc_add_frame_flags(buffersrc_ctx, pFrame, AV_BUFFERSRC_FLAG_KEEP_REF) >= 0)
             {
                  /* pull filtered frames from the filtergraph */
-                 while (1) {
+                 while (1)
+                 {
                      ret = av_buffersink_get_frame(buffersink_ctx, filt_frame);
                      if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
                          break;
@@ -3548,7 +3552,13 @@ make_thumbnail(char *file)
                         pFrame = filt_frame;
                      }
                      else
+                     {
                         av_log(NULL, AV_LOG_ERROR, "Error while reading the filtergraph\n");
+                        av_log(NULL, AV_LOG_ERROR, "Turning off frame filtering\n");
+                        DEALLOC(l__filters);
+                        nr_warnings++;
+                        goto restart;
+                    }
                  }
 
                 struct SwsContext *pFilteredSwsCtx = sws_getContext(pCodecCtx->width, pCodecCtx->height, filt_frame->format,
@@ -3782,10 +3792,14 @@ make_thumbnail(char *file)
     av_log(NULL, AV_LOG_INFO, "  %.2f s, %.2f %s, %s: %s\n",
         diff_time, (tn.idx + 1) / diff_time, __("shots/s"), __("output"), tn.out_filename);
 
-    if(tn.tiles_nr == (tn.row * tn.column))
-        return_code = 0;        // everything is fine
-    else
-        return_code = 1;        // warning - some images are missing
+    if(tn.tiles_nr != (tn.row * tn.column)) // some images are missing
+        nr_warnings++;
+
+    if(tn.out_saved == 1)
+        return_code = 0;
+
+    if(nr_warnings)
+        return_code = 1;
 
   cleanup:
     if (NULL != ip)
@@ -3826,8 +3840,11 @@ make_thumbnail(char *file)
 
     thumb_cleanup_dynamic(&tn);
     DEALLOC(all_text);
+    DEALLOC(l__filters);
+    DEALLOC(l__filter_color_primaries);
 
     av_log(NULL, AV_LOG_VERBOSE, "make_thumbnail: done\n");
+
     return return_code;
 }
 
@@ -4597,7 +4614,7 @@ int main(int argc, char *argv[])
                                                     av_log(NULL, AV_LOG_ERROR, "%s: No digits were found in argument for the --tonemap option\n", gb_argv0);
                                                 }
 
-                                                if(gb__tonemap < 0 || gb__tonemap > 4347
+                                                if(gb__tonemap < 0 || gb__tonemap > 3
                                                 )
                                                 {
                                                     parse_error++;
@@ -4847,11 +4864,10 @@ int main(int argc, char *argv[])
 
     if(gb__tonemap > 0)
     {
+        dealloc(gb__filters);
+        dealloc(gb__filter_color_primaries);
+
         gb__filters = strdup(FILTER_GRAPHS[gb__tonemap-1]);
-
-        if(gb__filter_color_primaries)
-            free(gb__filter_color_primaries);
-
         gb__filter_color_primaries = strdup("bt2020");
     }
 
@@ -4925,10 +4941,8 @@ int main(int argc, char *argv[])
     if(gb__options)
         av_dict_free(&gb__options);
 
-    if(gb__filters)
-        free(gb__filters);
-    if(gb__filter_color_primaries)
-        free(gb__filter_color_primaries);
+    DEALLOC(gb__filters);
+    DEALLOC(gb__filter_color_primaries);
 
     //av_log(NULL, AV_LOG_VERBOSE, "\n%s: total run time: %.2f s.\n", gb_argv0, difftime(time(NULL), gb_st_start));
 
