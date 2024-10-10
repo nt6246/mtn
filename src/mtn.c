@@ -2701,10 +2701,13 @@ calculate_thumbnail(
     } else {
         tn->img_width = full_width;
     }
-    tn->shot_width_out = floor((tn->img_width - gb_g_gap*(tn->column+1)) / (double)tn->column + 0.5); // round nearest
+    tn->shot_width_out = floor((tn->img_width - gb_g_gap*(tn->column+1)) / (double)tn->column);
     tn->shot_width_out -= tn->shot_width_out%2; // floor to even number
-    tn->shot_height_out = floor((double) src_height / src_width * tn->shot_width_out + 0.5); // round nearest
+    tn->shot_height_out = floor((double) src_height / src_width * tn->shot_width_out);
     tn->shot_height_out -= tn->shot_height_out%2; // floor to even number
+
+    //recalculate img_width after round&floor
+    tn->img_width = tn->shot_width_out * tn->column + gb_g_gap*(tn->column+1);
     tn->center_gap = (tn->img_width - gb_g_gap*(tn->column+1) - tn->shot_width_out * tn->column) / 2.0;
 }
 

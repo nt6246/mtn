@@ -4,6 +4,7 @@ version NEXT
 - turn off tonemap/filter in case of failure
 - fix missing gap between info text and thumbnails
 - fix parsing option -F when fontpath contains ':'
+- fix extra empty stripes
 
 version 3.5.0 	2024/02/21
 - add filtering and tonemaping (--filters, --filter-color-primaries, --tonemap)
