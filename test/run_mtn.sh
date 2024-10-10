@@ -108,7 +108,7 @@ run_mtn -a 1.3333
 
 colouredecho  "===> Process 30s length with nonseek"
 tcdir lenght_30s
-run_mtn -b 1 -D 0 -s 2 -C 32 -Z
+run_mtn -b 1 -g 3 -D 0 -s 2 -C 32 -Z
 
 colouredecho  "===> Skip 5min. at the Beginning and End of file"
 tcdir skip_ends_5min
