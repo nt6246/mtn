@@ -9,8 +9,8 @@ For more information visit wiki at https://gitlab.com/movie_thumbnailer/mtn/wiki
 Dependency
 ==========
 
- - ffmpeg   (>=3.1)
- - gd       (>=2.0.33)
+ - ffmpeg
+ - gd
 
 Getting source
 ==============

@@ -777,13 +777,6 @@ gdImagePtr crop_image(gdImagePtr ip, int new_width, int new_height)
     return new_ip;
 }
 
-void dump_used_font(gdFTStringExtra *flags)
-{
-    av_log(NULL, AV_LOG_VERBOSE, "Using font: \"%s\"\n", flags->fontpath);
-    free(flags->fontpath);
-    flags->fontpath=NULL;
-}
-
 void dump_thumbnail(const thumbnail* const tn)
 {
     av_log(NULL, AV_LOG_INFO, "-------------- Thumbnail --------------\n");
@@ -799,6 +792,18 @@ void dump_thumbnail(const thumbnail* const tn)
     av_log(NULL, AV_LOG_INFO, "---------------------------------------\n");
 }
 
+char* gdImageStringUni(gdImagePtr im, int *brect, int gd_color, const char *font, double ptsize, int x, int y, const char *text, gdFTStringExtra* fcFlags)
+{
+    char *err = gdImageStringFTEx(im, brect, gd_color, font, ptsize, 0.0/*angle*/, x, y, text, fcFlags);
+
+    if(fcFlags->flags | gdFTEX_RETURNFONTPATHNAME)
+    {
+        av_log(NULL, AV_LOG_VERBOSE, "Using font: \"%s\"\n", fcFlags->fontpath);
+        DEALLOC(fcFlags->fontpath);
+    }
+
+    return err;
+}
 /*
 returns height, or 0 if error
 */
@@ -810,8 +815,8 @@ int image_string_height(char *text, char *font, double size, gdFTStringExtra *fc
         return 0;
     }
 
-    char *err = gdImageStringFTEx(NULL, &brect[0], 0, font, size, 0, 0, 0, text, fcFlags);
-    if (NULL != err) {
+    char *err = gdImageStringUni(NULL, &brect[0], 0, font, size, 0, 0, text, fcFlags);
+    if (err) {
         av_log(NULL, AV_LOG_WARNING, "[@%d] error opening font '%s': %s\n", __LINE__, font, err);
         return 0;
     }
@@ -843,13 +848,11 @@ char *image_string(gdImagePtr ip,
     int brect[8];
 
     int gd_color = gdImageColorResolve(ip, color.r, color.g, color.b);
-    char *err = gdImageStringFTEx(NULL, brect, gd_color, font, size, 0, 0, 0, text, fcFlags);
+    char *err = gdImageStringUni(NULL, brect, gd_color, font, size, 0, 0, text, fcFlags);
 
     if (NULL != err) {
         return err;
     }
-
-    dump_used_font(fcFlags);
 
     int x, y;
     switch (position)
@@ -902,7 +905,7 @@ char *image_string(gdImagePtr ip,
             return "image_string's position can only be 1, 2, 3, or 4";
         }
         int gd_shadow = gdImageColorResolve(ip, shadow_color.r, shadow_color.g, shadow_color.b);
-        err = gdImageStringFTEx(ip, brect, gd_shadow, font, size, 0, shadowx, shadowy, text, fcFlags);
+        err = gdImageStringUni(ip, brect, gd_shadow, font, size, shadowx, shadowy, text, fcFlags);
         if (NULL != err)
         {
             av_log(NULL, AV_LOG_VERBOSE, "at line %d\n", __LINE__);
@@ -910,7 +913,7 @@ char *image_string(gdImagePtr ip,
         }
     }
 
-    char *gdstrret = gdImageStringFTEx(ip, brect, gd_color, font, size, 0, x, y, text, fcFlags);
+    char *gdstrret = gdImageStringUni(ip, brect, gd_color, font, size, x, y, text, fcFlags);
 
     if(gdstrret)
         av_log(NULL, AV_LOG_VERBOSE, "at line %d\n", __LINE__);
@@ -1345,7 +1348,6 @@ return -1 if failed
 int thumb_alloc_dynamic(thumbnail *ptn)
 {
     ptn->ppts = malloc(ptn->column * ptn->row * sizeof(*(ptn->ppts)));
-    ptn->filenamebase = NULL;
 
     if (NULL == ptn->ppts) {
         return -1;
@@ -3732,6 +3734,7 @@ make_thumbnail(char *file)
 
     sprite_flush(sprite);
     sprite_export_vtt(sprite);
+    sprite_destroy(sprite);
 
     if (gb_I_individual_ignore_grid) {
         return_code = 0;
@@ -4417,7 +4420,11 @@ char* mtn_identification()
 void
 usage()
 {
-    av_log(NULL, AV_LOG_INFO, "\n%s\n\n", mtn_identification());
+    {
+    char *mtn_id = mtn_identification();
+    av_log(NULL, AV_LOG_INFO, "\n%s\n\n", mtn_id);
+    free(mtn_id);
+    }
 #ifndef DEBUG
     av_log(NULL, AV_LOG_INFO, "Mtn saves thumbnails of specified movie files or directories to image files.\n");
     av_log(NULL, AV_LOG_INFO, "For directories, it will recursively search inside for movie files.\n\n");
@@ -4823,8 +4830,11 @@ int main(int argc, char *argv[])
 
 
     /* gdFTUseFontConfig(1);  => no needed, using gdImageStringFTEx */
-    fcStrFlagsInfotext.flags  =
-    fcStrFlagsTimestamp.flags = gdFTEX_RETURNFONTPATHNAME;
+    if(gb_v_verbose)
+    {
+        fcStrFlagsInfotext.flags  =
+        fcStrFlagsTimestamp.flags = gdFTEX_RETURNFONTPATHNAME;  //caller is responsible for calling gdFree() on the fontpath element after the call
+    }
 
     if (!strcmp(gb_f_fontname, GB_F_FONTNAME) || is_reg(gb_f_fontname)==0)
     {
@@ -4921,8 +4931,11 @@ int main(int argc, char *argv[])
     }
 
     // display mtn+libraries versions for bug reporting
-    av_log(NULL, AV_LOG_VERBOSE, "%s\n\n", mtn_identification());
-
+    {
+    char *mtn_id = mtn_identification();
+    av_log(NULL, AV_LOG_VERBOSE, "%s\n\n", mtn_id);
+    free(mtn_id);
+    }
 
     av_log(NULL, AV_LOG_VERBOSE, "locale lang:   %s\n", setlocale(LC_ALL, ""));
     #ifdef MTN_WITH_LOCALE
@@ -4943,6 +4956,18 @@ int main(int argc, char *argv[])
 
     if(gb__options)
         av_dict_free(&gb__options);
+
+    // deallocate movie_ext
+    if(movie_ext)
+    {
+        int nb_ext = 0;
+        while(movie_ext[nb_ext])
+        {
+            free(movie_ext[nb_ext]);
+            nb_ext++;
+        }
+        free(movie_ext);
+    }
 
     DEALLOC(gb__filters);
     DEALLOC(gb__filter_color_primaries);

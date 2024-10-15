@@ -78,7 +78,13 @@ static: mtn.c $(OUT)
 	$(CC) -o $(OUT)/mtn mtn.c $(S_INCPATH) $(CFLAGS) $(S_LIBS) -DMTN_STATIC
 
 debug: mtn.c $(OUT)
-	$(CC) -o $(OUT)/mtn mtn.c $(INCPATH) $(CFLAGS) -fanalyzer -g -DDEBUG $(LIBS)
+	$(CC) -o $(OUT)/mtn mtn.c $(INCPATH) $(CFLAGS) -g -DDEBUG $(LIBS)
+
+valgrind: debug
+	valgrind --leak-check=full $(OUT)/mtn
+
+analyze: CFLAGS+=-fanalyzer
+analyze: clean debug
 
 clean:
 	rm -f $(OUT)/mtn
@@ -120,4 +126,3 @@ uninstall:
 	rm -f  $(DESTDIR)$(PREFIX)/share/man/man1/mtn.1
 	rm -f  $(DESTDIR)$(PREFIX)/bin/mtn
 	rm -rf $(DESTDIR)$(PREFIX)/share/doc/mtn
-
