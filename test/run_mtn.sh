@@ -49,6 +49,8 @@ function run_mtn {
     fi
     echo $CMD
     $CMD 2>&1 | grep -v 'shots/s. outpu' >>out.log
+    # [h264 @ 0x2eed9e80] Reinit context to 640x368, pix_fmt: yuv420p
+    sed -Ei "s/^\[\w+\ @\ \w+\]/\[REMOVED\]/g" out.log
     popd > /dev/null
 }
 
