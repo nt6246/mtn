@@ -932,7 +932,7 @@ int image_string_padding(char *font, double size, gdFTStringExtra *fcFlags)
 char* find_tag_value(char* tagname, thumbnail *tn)
 {
     char* value = malloc(sizeof(char));
-    value = '\0';
+    *value = '\0';
 
     if(!strcmp(tagname, "nl"))
         sprintf_realloc(&value, 0, "%s", "\n");
@@ -1749,7 +1749,7 @@ double get_stream_rotation(AVStream *st)
             AVPacketSideData sd = _src_sd[i];
 
             if(sd.type == AV_PKT_DATA_DISPLAYMATRIX) {
-                rotation = av_display_rotation_get((int32_t *)sd.data);
+                rotation = av_display_rotation_get((const int32_t *)sd.data);
                 break;
             }
         }
@@ -2813,6 +2813,8 @@ make_thumbnail(char *file)
     gdImagePtr ip = NULL;
     const char *codec_color_primaries = NULL;
     int filter_color_primaries_match = 1;
+    char *all_text = (char*)malloc(1);
+    all_text[0] = '\0';
 
     int t_timestamp = gb_t_timestamp; // local timestamp; can be turned off; 0 = off
     int ret;
@@ -3225,8 +3227,6 @@ make_thumbnail(char *file)
     }
 
     char *text_stream_info = get_stream_info(pFormatCtx, file, 1, sample_aspect_ratio, &tn); // FIXME: using function's static buffer
-    char *all_text = (char*)malloc(1);
-    all_text[0] = '\0';
     char* image_text_untagged = NULL;
 
     if (gb_i_info)
@@ -4113,10 +4113,10 @@ int get_windows_argv(int __attribute__((unused)) *pargc, char __attribute__((unu
 
 /*
 */
-int get_location_opt(char c, char *optarg)
+int get_location_opt(char c, char *opt_arg)
 {
     int ret = 1;
-    char *bak = strdup(optarg); // backup for displaying error
+    char *bak = strdup(opt_arg); // backup for displaying error
     if (NULL == bak) {
         av_log(NULL, AV_LOG_ERROR, "%s: strdup failed\n", gb_argv0);
         return ret;
@@ -4126,7 +4126,7 @@ int get_location_opt(char c, char *optarg)
     char *tailptr;
 
     // info text location
-    char *token = strtok(optarg, delim);
+    char *token = strtok(opt_arg, delim);
     if (NULL == token) {
         goto cleanup;
     }
@@ -4193,10 +4193,10 @@ int parse_color(rgb_color *rgb, color_str str)
 
 /*
 */
-int get_color_opt(char c, rgb_color *color, char *optarg)
+int get_color_opt(char c, rgb_color *color, char *opt_arg)
 {
-    if (-1 == parse_color(color, optarg))   {
-        av_log(NULL, AV_LOG_ERROR, "%s: argument for option -%c is invalid at '%s' -- must be RRGGBB in hex\n", gb_argv0, c, optarg);
+    if (-1 == parse_color(color, opt_arg))   {
+        av_log(NULL, AV_LOG_ERROR, "%s: argument for option -%c is invalid at '%s' -- must be RRGGBB in hex\n", gb_argv0, c, opt_arg);
         return 1;
     }
     return 0;
@@ -4204,10 +4204,10 @@ int get_color_opt(char c, rgb_color *color, char *optarg)
 
 /*
 */
-int get_format_opt(char c, char *optarg)
+int get_format_opt(char c, char *opt_arg)
 {
     int ret = 1;
-    char *bak = strdup(optarg); // backup for displaying error
+    char *bak = strdup(opt_arg); // backup for displaying error
     if (NULL == bak) {
         av_log(NULL, AV_LOG_ERROR, "%s: strdup failed\n", gb_argv0);
         return ret;
@@ -4222,27 +4222,27 @@ int get_format_opt(char c, char *optarg)
     // change delimiter for a safe one to be able detect windows drive letter
     // in filepath (e.g. C:\path\to\.ttf)
     size_t i;
-    for(i=0; i<strlen(optarg); i++)
+    for(i=0; i<strlen(opt_arg); i++)
     {
         if(!substr_protected)
         {
-            if(optarg[i] == '"' || optarg[i] == '`' || optarg[i] == '\'')
+            if(opt_arg[i] == '"' || opt_arg[i] == '`' || opt_arg[i] == '\'')
             {
-                substr_protector = optarg[i];
+                substr_protector = opt_arg[i];
                 substr_protected = !substr_protected;
                 continue;
             }
 
-            if(optarg[i] == opt_delimiter)
-                optarg[i] = safe_delimiter;
+            if(opt_arg[i] == opt_delimiter)
+                opt_arg[i] = safe_delimiter;
         }
 
-        if(substr_protected && optarg[i] == substr_protector)
+        if(substr_protected && opt_arg[i] == substr_protector)
                 substr_protected = !substr_protected;
     }
 
     // info text font color
-    char *token = strtok(optarg, delim);
+    char *token = strtok(opt_arg, delim);
     if (NULL == token || -1 == parse_color(&gb_F_info_color, token)) {
         goto cleanup;
     }
@@ -4312,38 +4312,38 @@ int get_format_opt(char c, char *optarg)
 }
 
 int
-get_opt_for_I_arg(char *optarg)
+get_opt_for_I_arg(char *opt_arg)
 {
-    if(strchr(optarg, '-'))
+    if(strchr(opt_arg, '-'))
     {
         av_log(NULL, AV_LOG_ERROR, "Missing argument for -I option!");
         return 1;
     }
 
-    if(strchr(optarg, 't') || strchr(optarg, 'T'))
+    if(strchr(opt_arg, 't') || strchr(opt_arg, 'T'))
         gb_I_individual_thumbnail = 1;
 
-    if(strchr(optarg, 'o') || strchr(optarg, 'O'))
+    if(strchr(opt_arg, 'o') || strchr(opt_arg, 'O'))
         gb_I_individual_original  = 1;
 
-    if(strchr(optarg, 'i') || strchr(optarg, 'I'))
+    if(strchr(opt_arg, 'i') || strchr(opt_arg, 'I'))
         gb_I_individual_ignore_grid = 1;
 
     if( gb_I_individual_thumbnail +
         gb_I_individual_original +
         gb_I_individual_ignore_grid == 0 )
     {
-        av_log(NULL, AV_LOG_ERROR, "Unknown argument \"%s\" for -I option!", optarg);
+        av_log(NULL, AV_LOG_ERROR, "Unknown argument \"%s\" for -I option!", opt_arg);
         return 1;
     }
 
     return 0;
 }
 
-int get_int_opt(char *c, int *opt, char *optarg, int sign)
+int get_int_opt(char *c, int *opt, char *opt_arg, int sign)
 {
     char *tailptr;
-    int ret = strtol(optarg, &tailptr, 10);
+    int ret = strtol(opt_arg, &tailptr, 10);
     if ('\0' != *tailptr) { // error
         av_log(NULL, AV_LOG_ERROR, "%s: argument for option -%s is invalid at '%s'\n", gb_argv0, c, tailptr);
         return 1;
@@ -4359,10 +4359,10 @@ int get_int_opt(char *c, int *opt, char *optarg, int sign)
     return 0;
 }
 
-int get_double_opt(char c, double *opt, char *optarg, double sign)
+int get_double_opt(char c, double *opt, char *opt_arg, double sign)
 {
     char *tailptr;
-    double ret = strtod(optarg, &tailptr);
+    double ret = strtod(opt_arg, &tailptr);
     if ('\0' != *tailptr) { // error
         av_log(NULL, AV_LOG_ERROR, "%s: argument for option -%c is invalid at '%s'\n", gb_argv0, c, tailptr);
         return 1;
