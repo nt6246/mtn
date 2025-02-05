@@ -137,6 +137,15 @@ typedef struct rgb_color
 } rgb_color;
 typedef char color_str[7]; // "RRGGBB" (in hex)
 
+typedef struct rgba_color
+{
+    int r;
+    int g;
+    int b;
+    int a;
+} rgba_color;
+typedef char rgba_color_str[9]; // "RRGGBBAA" (in hex)
+
 #define PROJNAME "mtn"
 #ifndef MTN_VERSION
 #define MTN_VERSION "3.5.0"
@@ -345,6 +354,8 @@ AVDictionary *gb__options = NULL;
 char* gb__filters = NULL;
 char* gb__filter_color_primaries = NULL;
 int gb__tonemap = 0;
+int gb__bound_box = 0; // bound-box under timestamps off by default; 1 on; 0 off
+rgba_color gb__bound_box_color = (rgba_color) {0, 0, 0, 215}; // background color
 
 /* more global variables */
 char *gb_argv0 = NULL;
@@ -825,11 +836,117 @@ int image_string_height(char *text, char *font, double size, gdFTStringExtra *fc
 }
 
 /*
+create bounding box under text
+
 position can be:
     1: lower left
     2: lower right
     3: upper right
-    4: upper leftage_string(gdImageP
+    4: upper left
+returns NULL if success, otherwise returns error message
+*/
+char* image_string_box(gdImagePtr ip,
+	rgba_color	box_color,
+	int 		box_padding,
+	char*		font,
+    rgb_color   font_color,
+	double 		size,
+	int 		position,
+	int 		gap,
+	char*		text,
+	int 		shadow,
+    rgb_color   shadow_color,
+	int 		text_padding,
+	gdFTStringExtra* fcFlags
+)
+{
+    int brect[8];
+
+    int gd_color = gdImageColorResolve(ip, 0, 0, 0);
+    char *err = gdImageStringUni(NULL, brect, gd_color, font, size, 0, 0, text, fcFlags);
+
+    if (NULL != err) {
+        return err;
+    }
+
+    int text_x, text_y;
+    int text_width = abs(brect[4] - brect[0]);
+    int text_height = abs(brect[5] - brect[1]);
+
+    int box_rect[4];
+    int box_width = text_width + 2 * box_padding;
+    int box_height = text_height + 2 * box_padding;
+    int font_offset = gap + text_padding;
+    switch (position)
+    {
+    case 1: // lower left
+        text_x = font_offset + box_padding;
+        text_y = gdImageSY(ip) - font_offset - box_padding;
+        box_rect[0] = font_offset;
+        box_rect[1] = gdImageSY(ip) - font_offset;
+        break;
+    case 2: // lower right
+        text_x = gdImageSX(ip) - font_offset - box_padding - text_width;
+        text_y = gdImageSY(ip) - font_offset - box_padding;
+        box_rect[0] = gdImageSX(ip) - font_offset - box_width;
+        box_rect[1] = gdImageSY(ip) - font_offset;
+        break;
+    case 3: // upper right
+        text_x = gdImageSX(ip) - font_offset - box_padding - text_width;
+        text_y = font_offset + box_padding + text_height;
+        box_rect[0] = gdImageSX(ip) - font_offset - box_width;
+        box_rect[1] = font_offset + box_height;
+        break;
+    case 4: // upper left
+        text_x = font_offset + box_padding;
+        text_y = font_offset + box_padding + text_height;
+        box_rect[0] = font_offset;
+        box_rect[1] = font_offset + box_height;
+        break;
+    default:
+        return "image_string's position can only be 1, 2, 3, or 4";
+    }
+    box_rect[2] = box_rect[0] + box_width;
+    box_rect[3] = box_rect[1] - box_height;
+
+    int gd_box_color = gdImageColorResolveAlpha(ip, box_color.r, box_color.g, box_color.b, 255 - box_color.a);
+    gdImageFilledRectangle(
+        ip,
+        box_rect[0], box_rect[1], // Bottom-left corner
+        box_rect[2], box_rect[3], // Top-right corner
+        gd_box_color
+    );
+
+    if (shadow) {
+        int shadow_x = text_x + 1;
+        int shadow_y = text_y + 1;
+        box_rect[1]++;
+        box_rect[2]++;
+
+        int gd_shadow = gdImageColorResolve(ip, shadow_color.r, shadow_color.g, shadow_color.b);
+        err = gdImageStringUni(ip, brect, gd_shadow, font, size, shadow_x, shadow_y, text, fcFlags);
+
+        if(NULL != err) {
+            av_log(NULL, AV_LOG_VERBOSE, "at line %d\n", __LINE__);
+            return err;
+        }
+    }
+
+    int gd_font_color = gdImageColorResolve(ip, font_color.r, font_color.g, font_color.b);
+    char *gdstrret = gdImageStringUni(ip, brect, gd_font_color, font, size, text_x, text_y, text, fcFlags);
+
+    if(gdstrret)
+        av_log(NULL, AV_LOG_VERBOSE, "at line %d\n", __LINE__);
+
+    return gdstrret;
+}
+
+/*
+position can be:
+    1: lower left
+    2: lower right
+    3: upper right
+    4: upper left
 returns NULL if success, otherwise returns error message
 */
 char *image_string(gdImagePtr ip,
@@ -3658,9 +3775,19 @@ make_thumbnail(char *file)
         if (t_timestamp) { // on
             TIME_STR time_str;
             format_time(calc_time(found_pts, pStream->time_base, start_time), time_str, ':');
-            char *str_ret = image_string(ip,
-                gb_F_ts_fontname, gb_F_ts_color, gb_F_ts_font_size,
-                gb_L_time_location, 0, time_str, 1, gb_F_ts_shadow, timestamp_text_padding, &fcStrFlagsTimestamp);
+            char *str_ret = NULL;
+            if (gb__bound_box) {
+                int box_padding = (int)(gb_F_ts_font_size / 3.0);
+                str_ret = image_string_box(ip,
+                    gb__bound_box_color, box_padding,
+                    gb_F_ts_fontname, gb_F_ts_color, gb_F_ts_font_size,
+                    gb_L_time_location, 0, time_str, 1, gb_F_ts_shadow, timestamp_text_padding, &fcStrFlagsTimestamp);
+            }
+            else {
+                str_ret = image_string(ip,
+                    gb_F_ts_fontname, gb_F_ts_color, gb_F_ts_font_size,
+                    gb_L_time_location, 0, time_str, 1, gb_F_ts_shadow, timestamp_text_padding, &fcStrFlagsTimestamp);
+            }
             if (NULL != str_ret) {
                 av_log(NULL, AV_LOG_ERROR, "  %s; font problem? see -f or -F option\n", str_ret);
                 goto cleanup; // LEAK: ip, edge_ip
@@ -4169,6 +4296,17 @@ rgb_color color_str2rgb_color(color_str col)
 }
 
 /*
+col must be in the correct format RRGGBBAA (in hex)
+*/
+rgba_color color_str2rgba_color(rgba_color_str col)
+{
+    return (rgba_color) {CHAR2INT(col[0])*16 + CHAR2INT(col[1]),
+        CHAR2INT(col[2])*16 + CHAR2INT(col[3]),
+        CHAR2INT(col[4])*16 + CHAR2INT(col[5]),
+        CHAR2INT(col[6])*16 + CHAR2INT(col[7]) };
+}
+
+/*
 check and convert color_str to rgb_color
 return -1 if error
 */
@@ -4188,6 +4326,29 @@ int parse_color(rgb_color *rgb, color_str str)
     }
     *rgb = color_str2rgb_color(str);
     //av_log(NULL, AV_LOG_INFO, "parse_color: %s=>%d,%d,%d\n", str, rgb->r, rgb->g, rgb->b); //DEBUG
+    return 0;
+}
+
+/*
+check and convert color_str to rgb_color
+return -1 if error
+*/
+int parse_rgba_color(rgba_color *rgba, rgba_color_str str)
+{
+    if (NULL == str || strlen(str) < 8) {
+        return -1;
+    }
+    int i;
+    for (i = 0; i < 8; i++) {
+        char upper = toupper(str[i]);
+        if (upper < '0' || upper > 'F')
+            return -1;
+        if (upper < 'A' && upper > '9')
+            return -1;
+        str[i] = upper;
+    }
+    *rgba = color_str2rgba_color(str);
+    //av_log(NULL, AV_LOG_INFO, "parse_color: %s=>%d,%d,%d,%dn", str, rgb->r, rgb->g, rgb->b, rgb->a); //DEBUG
     return 0;
 }
 
@@ -4476,6 +4637,7 @@ usage()
     av_log(NULL, AV_LOG_INFO, "  --filters=FILTER_GRAPH\n       simple FILTER_GRAPH passed to the FFmpeg's libavfilter library (same as -vf or -filter:v in ffmpeg)\n");
     av_log(NULL, AV_LOG_INFO, "  --filter-color-primaries=<COLOR_PRIMARIES>\n       comma-separated list of color primaries\n");
     av_log(NULL, AV_LOG_INFO, "  --tonemap[=<MODE>]\n       tonemap HDR movies; 0: off, 1-3: predefined filtergraphs\n");
+    av_log(NULL, AV_LOG_INFO, "  --bounding-box[=RRGGBBAA]\n       add a bounding box under timestamps\n");
     av_log(NULL, AV_LOG_INFO, "  file_or_dirX\n       name of the movie file or directory containing movie files\n\n");
 
 // no man page for windows; let them know about examples
@@ -4546,6 +4708,7 @@ int main(int argc, char *argv[])
         {"filters",               required_argument,  0,  0 },
         {"filter-color-primaries",required_argument,  0,  0 },
         {"tonemap",               optional_argument,  0,  0 },
+        {"bounding-box",          optional_argument,  0,  0 },
         {0,                       0,                  0,  0 }
     };
     int parse_error = 0, option_index = 0;
@@ -4554,92 +4717,85 @@ int main(int argc, char *argv[])
         double tmp_a_ratio = 0;
         switch (c) {
         case 0:
-            if(strcmp("shadow", long_options[option_index].name) == 0)
+            if (strcmp("shadow", long_options[option_index].name) == 0)
             {
-                if(optarg)
+                if (optarg)
                     parse_error += get_int_opt("-shadow", &gb__shadow, optarg, 0);
                 else
                     gb__shadow = 0;
             }
-            else
+            else if (strcmp("transparent", long_options[option_index].name) == 0)
             {
-                if(strcmp("transparent", long_options[option_index].name) == 0)
-                    gb__transparent_bg = 1;
+                gb__transparent_bg = 1;
+            }
+            else if (strcmp("cover", long_options[option_index].name) == 0)
+            {
+                gb__cover = 1;
+
+                if (optarg)
+                    gb__cover_suffix = optarg;
+            }
+            else if (strcmp("vtt", long_options[option_index].name) == 0)
+            {
+                gb__webvtt = 1;
+
+                if (optarg)
+                    gb__webvtt_prefix = optarg;
+            }
+            else if (strcmp("options", long_options[option_index].name) == 0)
+            {
+                if (options_add_2_AVDictionary(&gb__options, optarg) != 0)
+                    parse_error++;
+            }
+            else if (strcmp("filters", long_options[option_index].name) == 0)
+            {
+                gb__filters = strdup(optarg);
+            }
+            else if (strcmp("filter-color-primaries", long_options[option_index].name) == 0)
+            {
+                gb__filter_color_primaries = strdup(optarg);
+            }
+            else if (strcmp("tonemap", long_options[option_index].name) == 0)
+            {
+                if (optarg)
+                {
+                    char *endptr = NULL;
+                    errno = 0;
+                    gb__tonemap = strtol(optarg, &endptr, 10);
+
+                    if (errno != 0)
+                    {
+                        parse_error++;
+                        av_log(NULL, AV_LOG_ERROR, "%s: invalid argument for the --tonemap option\n", gb_argv0);
+                    }
+
+                    if (optarg == endptr)
+                    {
+                        parse_error++;
+                        av_log(NULL, AV_LOG_ERROR, "%s: No digits were found in argument for the --tonemap option\n", gb_argv0);
+                    }
+
+                    if (gb__tonemap < 0 || gb__tonemap > 3)
+                    {
+                        parse_error++;
+                        av_log(NULL, AV_LOG_ERROR, "%s: argument for the --tonemap option must be between 0 and 3\n", gb_argv0);
+                    }
+                }
                 else
                 {
-                    if(strcmp("cover", long_options[option_index].name) == 0)
+                    gb__tonemap = DEFAULT_FLTERGRAPH;
+                }
+            }
+            else if (strcmp("bounding-box", long_options[option_index].name) == 0)
+            {
+                gb__bound_box = 1;
+
+                if (optarg)
+                {
+                    if (-1 == parse_rgba_color(&gb__bound_box_color, optarg))
                     {
-                        gb__cover = 1;
-
-                        if(optarg)
-                            gb__cover_suffix = optarg;
-                    }
-                    else
-                    {
-                        if(strcmp("vtt", long_options[option_index].name) == 0)
-                        {
-                            gb__webvtt = 1;
-
-                            if(optarg)
-                                gb__webvtt_prefix = optarg;
-                        }
-                        else
-                        {
-                            if(strcmp("options", long_options[option_index].name) == 0)
-                            {
-                                if(options_add_2_AVDictionary(&gb__options, optarg) != 0)
-                                    parse_error++;
-                            }
-                            else
-                            {
-                                if(strcmp("filters", long_options[option_index].name) == 0)
-                                {
-                                    gb__filters = strdup(optarg);
-                                }
-                                else
-                                {
-                                    if(strcmp("filter-color-primaries", long_options[option_index].name) == 0)
-                                    {
-                                        gb__filter_color_primaries = strdup(optarg);
-                                    }
-                                    else
-                                    {
-                                        if(strcmp("tonemap", long_options[option_index].name) == 0)
-                                        {
-                                            if(optarg)
-                                            {
-                                                char *endptr = NULL;
-                                                errno = 0;
-                                                gb__tonemap = strtol(optarg, &endptr, 10);
-
-                                                if(errno != 0)
-                                                {
-                                                    parse_error++;
-                                                    av_log(NULL, AV_LOG_ERROR, "%s: invalid argument for the --tonemap option\n", gb_argv0);
-                                                }
-
-                                                if(optarg == endptr)
-                                                {
-                                                    parse_error++;
-                                                    av_log(NULL, AV_LOG_ERROR, "%s: No digits were found in argument for the --tonemap option\n", gb_argv0);
-                                                }
-
-                                                if(gb__tonemap < 0 || gb__tonemap > 3
-                                                )
-                                                {
-                                                    parse_error++;
-                                                    av_log(NULL, AV_LOG_ERROR, "%s: argument for the --tonemap option must be between 0 and 3\n", gb_argv0);
-                                                }
-                                            }
-                                            else
-                                            {
-                                                gb__tonemap = DEFAULT_FLTERGRAPH;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        av_log(NULL, AV_LOG_ERROR, "%s: argument for option --bounding-box is invalid at '%s' -- must be RRGGBBAA in hex\n", gb_argv0, optarg);
+                        parse_error += 1;
                     }
                 }
             }

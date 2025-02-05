@@ -23,9 +23,9 @@ Mtn saves thumbnails of specified movie files or directories to jpeg files.
   -f font
     Font File or Font Name, see
 .BR fc-list (1)
-and 
+and
 .BR fc-match (1)
-    e.g. "/usr/share/fonts/TTF/DejaVuSerif-BoldItalic.ttf" 
+    e.g. "/usr/share/fonts/TTF/DejaVuSerif-BoldItalic.ttf"
       or "DejaVu Serif:style=Bold Italic"
 
   -F RRGGBB:size[:font:RRGGBB:RRGGBB:size]
@@ -70,13 +70,13 @@ duration    | Movie duration                        | 1:12:00
 framerate   | Frame rate in fps                     | 25.00
 acodec      | Audio codec                           | aac
 vcodec      | Video codec                           | h264
-nl          | New line                              | 
+nl          | New line                              |
 .TE
 
-     Example: 
+     Example:
      mtn -T "File: {{filename}}{{nl}}Length: {{duration}}" MOVIE
      mtn -T ./my_info_text MOVIE
-     
+
   -v : verbose mode (debug)
   -w 1024 : width of output image; 0:column * movie width
   -W : don't overwrite existing files, i.e. update mode
@@ -84,7 +84,7 @@ nl          | New line                              |
   -X : use full input filename (include extension)
   -z : always use seek mode
   -Z : always use non-seek mode - slower but more accurate timing (useful for very short movies)
-  
+
 .IP --shadow[=N]
 draw shadows beneath thumbnails with radius N pixels if N>0. Radius is calculated if N\=0 or N is omitted.
 
@@ -128,6 +128,9 @@ uses filtegraph
 3: Complex solution. Same as
     \fI--filters\fP="zscale=t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,tonemap=tonemap=hable,zscale=t=bt709:m=bt709:r=tv,format=yuv420p"
 
+.IP --bounding-box[=RRGGBBAA]
+Add a bounding box under timestamps. Default value is 000000D7 if enabled.
+
 .IP FILENAME
 Name of the movie file or directory containing movie files
 
@@ -158,7 +161,7 @@ Name of the movie file or directory containing movie files
     mtn -q infile.avi
   to enable additional protocols:
     mtn --options=protocol_whitelist:file,crypto,data,http,https,tcp,tls infile.avi
-    
+
 .SH "SEE ALSO"
 .BR ffmpeg (1),
 .BR ffmpeg-filters (1),
