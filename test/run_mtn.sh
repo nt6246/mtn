@@ -131,7 +131,9 @@ run_mtn -g 5 -k 10FF55 -f $testfont -F FF1010:16:$testfont:FFFFFF:FF0000:20 -d 1
 
 colouredecho  "===> Text position "
 tcdir text_position_changed
-run_mtn -k FFFFFF -g 5 -L 3:4
+run_mtn -o _a.jpg -k FFFFFF -g 5 -L 3:3
+run_mtn -o _b.jpg -k FFFFFF -g 5 -L 2:5
+run_mtn -o _c.jpg -k FFFFFF -g 5 -L 4:6
 
 colouredecho  "===> First stream, one shot full width"
 tcdir firt_stream_one_shot

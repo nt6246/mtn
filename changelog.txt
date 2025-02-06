@@ -1,4 +1,5 @@
 version NEXT
+- Add lower middle and upper middle positions for timestamps
 - Add --bounding-box option to add a bounding box under timestamps
 - enabled FontConfig: Font argument for -f and -F now works also with font names
 - improved option -T
