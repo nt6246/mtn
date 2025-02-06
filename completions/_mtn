@@ -50,10 +50,11 @@ _mtn()
 				'--transparent[Transparent background color]'\
 				'--cover[Extract album art]'\
 				'--vtt[Previews in WebVTT format]'\
-				'--options[options for FFmpeg]'\
-				'--filters[filtergraph for FFmpegs filters]'\
-				'--filter-color-primaries[color primaries for --filters]'\
+				'--options=[options for FFmpeg]'\
+				'--filters=[filtergraph for FFmpegs filters]'\
+				'--filter-color-primaries=[color primaries for --filters]'\
 				'--tonemap[predefined filters for tonemaping frames; values 1-3]'\
+				'--bounding-box[add a bounding box under timestamps]' \
 				'*:file:_files'
 }
 

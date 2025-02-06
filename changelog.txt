@@ -1,4 +1,5 @@
 version NEXT
+- Add --bounding-box option to add a bounding box under timestamps
 - enabled FontConfig: Font argument for -f and -F now works also with font names
 - improved option -T
 - turn off tonemap/filter in case of failure

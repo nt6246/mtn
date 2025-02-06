@@ -157,6 +157,14 @@ colouredecho  "===> FontConfig"
 tcdir fontconfig
 run_mtn -f "NimbusRoman-Regular:style=Italic"
 
+colouredecho  "===> bounding box for timestamps (--bounding-box)"
+tcdir timestamp_box_black
+run_mtn -w 1920 -c2 -r2 --bounding-box -i -F FFFFFF:20:DejaVuSans:ffFFff:000000:14
+
+colouredecho  "===> bounding box for timestamps (--bounding-box=RGBA)"
+tcdir timestamp_box_white
+run_mtn -w 1920 -c2 -r2 --bounding-box=FFFFFFb0 -i -F FFFFFF:20:DejaVuSans:111111:ffFFff:14
+
 colouredecho  "===> Filters"
 tcdir filters
 run_mtn --filters='split[main][tmp];[tmp]crop=iw/2:ih:0:0,hflip[flip];[main][flip]overlay=W/2:0'
