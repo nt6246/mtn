@@ -876,35 +876,47 @@ char* image_string_box(gdImagePtr ip,
     int box_rect[4];
     int box_width = text_width + 2 * box_padding;
     int box_height = text_height + 2 * box_padding;
-    int font_offset = gap + text_padding;
+    int text_offset = gap + text_padding;
     switch (position)
     {
     case 1: // lower left
-        text_x = font_offset + box_padding;
-        text_y = gdImageSY(ip) - font_offset - box_padding;
-        box_rect[0] = font_offset;
-        box_rect[1] = gdImageSY(ip) - font_offset;
+        text_x = text_offset + box_padding;
+        text_y = gdImageSY(ip) - text_offset - box_padding;
+        box_rect[0] = text_offset;
+        box_rect[1] = gdImageSY(ip) - text_offset;
         break;
     case 2: // lower right
-        text_x = gdImageSX(ip) - font_offset - box_padding - text_width;
-        text_y = gdImageSY(ip) - font_offset - box_padding;
-        box_rect[0] = gdImageSX(ip) - font_offset - box_width;
-        box_rect[1] = gdImageSY(ip) - font_offset;
+        text_x = gdImageSX(ip) - text_offset - box_padding - text_width;
+        text_y = gdImageSY(ip) - text_offset - box_padding;
+        box_rect[0] = gdImageSX(ip) - text_offset - box_width;
+        box_rect[1] = gdImageSY(ip) - text_offset;
         break;
     case 3: // upper right
-        text_x = gdImageSX(ip) - font_offset - box_padding - text_width;
-        text_y = font_offset + box_padding + text_height;
-        box_rect[0] = gdImageSX(ip) - font_offset - box_width;
-        box_rect[1] = font_offset + box_height;
+        text_x = gdImageSX(ip) - text_offset - box_padding - text_width;
+        text_y = text_offset + box_padding + text_height;
+        box_rect[0] = gdImageSX(ip) - text_offset - box_width;
+        box_rect[1] = text_offset + box_height;
         break;
     case 4: // upper left
-        text_x = font_offset + box_padding;
-        text_y = font_offset + box_padding + text_height;
-        box_rect[0] = font_offset;
-        box_rect[1] = font_offset + box_height;
+        text_x = text_offset + box_padding;
+        text_y = text_offset + box_padding + text_height;
+        box_rect[0] = text_offset;
+        box_rect[1] = text_offset + box_height;
+        break;
+    case 5: // lower middle
+        text_x = (gdImageSX(ip) - text_width) / 2;
+        text_y = gdImageSY(ip) - text_offset - box_padding;
+        box_rect[0] = (gdImageSX(ip) - box_width) / 2;
+        box_rect[1] = gdImageSY(ip) - text_offset;
+        break;
+    case 6: // upper middle
+        text_x = (gdImageSX(ip) - text_width) / 2;
+        text_y = text_offset + box_padding + text_height;
+        box_rect[0] = (gdImageSX(ip) - box_width) / 2;
+        box_rect[1] = text_offset + box_height;
         break;
     default:
-        return "image_string's position can only be 1, 2, 3, or 4";
+        return "image_string's position can only be 1, 2, 3, 4, 5 or 6";
     }
     box_rect[2] = box_rect[0] + box_width;
     box_rect[3] = box_rect[1] - box_height;
@@ -990,8 +1002,16 @@ char *image_string(gdImagePtr ip,
         x = -brect[6] + gap + padding;
         y = -brect[7] + gap + padding + LIBGD_FONT_HEIGHT_CORRECTION;
         break;
+    case 5: // lower middle
+        x = (gdImageSX(ip) - brect[2] + brect[0]) / 2;
+        y = gdImageSY(ip) - brect[1] - gap - padding;
+        break;
+    case 6: // upper middle
+        x = (gdImageSX(ip) - brect[4] + brect[6]) / 2;
+        y = -brect[5] + gap + padding + LIBGD_FONT_HEIGHT_CORRECTION;
+        break;
     default:
-        return "image_string's position can only be 1, 2, 3, or 4";
+        return "image_string's position can only be 1, 2, 3, 4, 5 or 6";
     }
 
     if (shadow) {
@@ -1018,8 +1038,17 @@ char *image_string(gdImagePtr ip,
             shadowx = x+1;
             shadowy = y+1;
             break;
+        case 5: // lower middle
+            shadowx = x+1;
+            shadowy = y;
+            y = y-1;
+            break;
+        case 6: // upper middle
+            shadowx = x+1;
+            shadowy = y+1;
+            break;
         default:
-            return "image_string's position can only be 1, 2, 3, or 4";
+            return "image_string's position can only be 1, 2, 3, 4, 5 or 6";
         }
         int gd_shadow = gdImageColorResolve(ip, shadow_color.r, shadow_color.g, shadow_color.b);
         err = gdImageStringUni(ip, brect, gd_shadow, font, size, shadowx, shadowy, text, fcFlags);
@@ -3486,6 +3515,10 @@ make_thumbnail(char *file)
 
     /* add info & text */ // do this early so when font is not found we'll quit early
     if (all_text && strlen(all_text) > 0) {
+        if (gb_L_info_location > 4 || gb_L_info_location < 1) {
+            av_log(NULL, AV_LOG_ERROR, "Info text location can only be 1, 2, 3, or 4\n");
+            goto cleanup;
+        }
         char *str_ret = image_string(tn.out_ip,
             gb_f_fontname, gb_F_info_color, gb_F_info_font_size,
             gb_L_info_location, gb_g_gap, all_text, 0, COLOR_WHITE, info_text_padding, &fcStrFlagsInfotext);
@@ -4609,7 +4642,7 @@ usage()
     av_log(NULL, AV_LOG_INFO, "  -I {toi}: save individual shots; t - thumbnail size, o - original size, i - ignore creating thumbnail grid\n");
     av_log(NULL, AV_LOG_INFO, "  -j %d : jpeg quality\n", GB_J_QUALITY);
     av_log(NULL, AV_LOG_INFO, "  -k RRGGBB : background color (in hex)\n"); // backgroud color
-    av_log(NULL, AV_LOG_INFO, "  -L info_location[:time_location] : location of text\n     1=lower left, 2=lower right, 3=upper right, 4=upper left\n");
+    av_log(NULL, AV_LOG_INFO, "  -L info_location[:time_location] : location of text\n     1=lower left, 2=lower right, 3=upper right, 4=upper left, 5=lower middle (time only), 6=upper middle (time only)\n");
     av_log(NULL, AV_LOG_INFO, "  -n : run at normal priority\n");
     av_log(NULL, AV_LOG_INFO, "  -N info_suffix : save info text to a file with suffix\n");
     av_log(NULL, AV_LOG_INFO, "  -o %s : output suffix including image extension (e.g. .jpg, .png)\n", GB_O_SUFFIX);
