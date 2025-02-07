@@ -277,7 +277,7 @@ double gb_E_end = GB_E_END; // skip this seconds at the end
 
 char *gb_f_fontname = GB_F_FONTNAME;
 rgb_color gb_F_info_color = COLOR_INFO; // info color
-double gb_F_info_font_size = 9; // info font size
+double gb_F_info_font_size = 9.0; // info font size
 char *gb_F_ts_fontname = NULL; // time stamp fontname
 rgb_color gb_F_ts_color = COLOR_WHITE; // time stamp color
 rgb_color gb_F_ts_shadow = COLOR_BLACK; // time stamp shadow color
@@ -4577,20 +4577,27 @@ int get_format_opt(char c, char *opt_arg)
     }
 
     // info text font color
-    char *token = strtok(opt_arg, delim);
-    if (NULL == token || -1 == parse_color(&gb_F_info_color, token)) {
+    char *token;
+    if ((token = strtok(opt_arg, delim)) == NULL)
         goto cleanup;
+
+    if(strcmp(token, "_") != 0)
+    {
+        if (-1 == parse_color(&gb_F_info_color, token))
+            goto cleanup;
     }
 
     // info text font size
-    token = strtok (NULL, delim);
-    if (NULL == token) {
+    if ((token = strtok(NULL, delim)) == NULL)
         goto cleanup;
-    }
+
     char *tailptr;
-    gb_F_info_font_size = strtod(token, &tailptr);
-    if ('\0' != *tailptr) { // error
-        goto cleanup;
+    if(strcmp(token, "_") != 0)
+    {
+        gb_F_info_font_size = strtod(token, &tailptr);
+        if ('\0' != *tailptr) { // error
+            goto cleanup;
+        }
     }
     // time stamp font
     token = strtok (NULL, delim);
@@ -4601,36 +4608,50 @@ int get_format_opt(char c, char *opt_arg)
         goto cleanup;
     }
 
-    if(token[0] == substr_protector)
+    if(strcmp(token, "_") != 0)
     {
-        char *newtsfont = strdup(token);
-        assert(newtsfont);
-        size_t fsize = strlen(token);
-        memset(newtsfont, 0, fsize+1);
-        strncpy(newtsfont, token+1, fsize-2);
-        gb_F_ts_fontname = newtsfont;
+        if(token[0] == substr_protector)
+        {
+            char *newtsfont = strdup(token);
+            assert(newtsfont);
+            size_t fsize = strlen(token);
+            memset(newtsfont, 0, fsize+1);
+            strncpy(newtsfont, token+1, fsize-2);
+            gb_F_ts_fontname = newtsfont;
+        }
+        else
+            gb_F_ts_fontname = token;
     }
-    else
-        gb_F_ts_fontname = token;
 
     // time stamp font color
-    token = strtok (NULL, delim);
-    if (NULL == token || -1 == parse_color(&gb_F_ts_color , token)) {
+    if ((token = strtok (NULL, delim)) == NULL)
         goto cleanup;
+
+    if(strcmp(token, "_") != 0)
+    {
+        if (-1 == parse_color(&gb_F_ts_color , token))
+            goto cleanup;
     }
+
     // time stamp shadow color
-    token = strtok (NULL, delim);
-    if (NULL == token || -1 == parse_color(&gb_F_ts_shadow  , token)) {
+    if ((token = strtok (NULL, delim)) == NULL)
         goto cleanup;
+
+    if(strcmp(token, "_") != 0)
+    {
+        if (-1 == parse_color(&gb_F_ts_shadow  , token))
+            goto cleanup;
     }
+
     // time stamp font size
-    token = strtok (NULL, delim);
-    if (NULL == token) {
+    if ((token = strtok (NULL, delim)) == NULL)
         goto cleanup;
-    }
-    gb_F_ts_font_size = strtod(token, &tailptr);
-    if ('\0' != *tailptr) { // error
-        goto cleanup;
+
+    if(strcmp(token, "_") != 0)
+    {
+        gb_F_ts_font_size = strtod(token, &tailptr);
+        if ('\0' != *tailptr) // error
+            goto cleanup;
     }
 
     ret = 0;
