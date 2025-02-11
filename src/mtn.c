@@ -355,6 +355,7 @@ char* gb__filters = NULL;
 char* gb__filter_color_primaries = NULL;
 int gb__tonemap = 0;
 int gb__bound_box = 0; // bound-box under timestamps off by default; 1 on; 0 off
+int gb__info_text_wrap = 1; // wrap the info text by default; 1 on; 0 off
 rgba_color gb__bound_box_color = (rgba_color) {0, 0, 0, 215}; // background color
 
 /* more global variables */
@@ -826,7 +827,7 @@ int image_string_height(char *text, char *font, double size, gdFTStringExtra *fc
         return 0;
     }
 
-    char *err = gdImageStringUni(NULL, &brect[0], 0, font, size, 0, 0, text, fcFlags);
+    char *err = gdImageStringUni(NULL, brect, 0, font, size, 0, 0, text, fcFlags);
     if (err) {
         av_log(NULL, AV_LOG_WARNING, "[@%d] error opening font '%s': %s\n", __LINE__, font, err);
         return 0;
@@ -935,8 +936,8 @@ char* image_string_box(gdImagePtr ip,
         box_rect[1]++;
         box_rect[2]++;
 
-        int gd_shadow = gdImageColorResolve(ip, shadow_color.r, shadow_color.g, shadow_color.b);
-        err = gdImageStringUni(ip, brect, gd_shadow, font, size, shadow_x, shadow_y, text, fcFlags);
+        int gd_shadow_color = gdImageColorResolve(ip, shadow_color.r, shadow_color.g, shadow_color.b);
+        err = gdImageStringUni(ip, NULL, gd_shadow_color, font, size, shadow_x, shadow_y, text, fcFlags);
 
         if(NULL != err) {
             av_log(NULL, AV_LOG_VERBOSE, "at line %d\n", __LINE__);
@@ -945,7 +946,7 @@ char* image_string_box(gdImagePtr ip,
     }
 
     int gd_font_color = gdImageColorResolve(ip, font_color.r, font_color.g, font_color.b);
-    char *gdstrret = gdImageStringUni(ip, brect, gd_font_color, font, size, text_x, text_y, text, fcFlags);
+    char *gdstrret = gdImageStringUni(ip, NULL, gd_font_color, font, size, text_x, text_y, text, fcFlags);
 
     if(gdstrret)
         av_log(NULL, AV_LOG_VERBOSE, "at line %d\n", __LINE__);
@@ -1051,7 +1052,7 @@ char *image_string(gdImagePtr ip,
             return "image_string's position can only be 1, 2, 3, 4, 5 or 6";
         }
         int gd_shadow = gdImageColorResolve(ip, shadow_color.r, shadow_color.g, shadow_color.b);
-        err = gdImageStringUni(ip, brect, gd_shadow, font, size, shadowx, shadowy, text, fcFlags);
+        err = gdImageStringUni(ip, NULL, gd_shadow, font, size, shadowx, shadowy, text, fcFlags);
         if (NULL != err)
         {
             av_log(NULL, AV_LOG_VERBOSE, "at line %d\n", __LINE__);
@@ -1059,7 +1060,7 @@ char *image_string(gdImagePtr ip,
         }
     }
 
-    char *gdstrret = gdImageStringUni(ip, brect, gd_color, font, size, x, y, text, fcFlags);
+    char *gdstrret = gdImageStringUni(ip, NULL, gd_color, font, size, x, y, text, fcFlags);
 
     if(gdstrret)
         av_log(NULL, AV_LOG_VERBOSE, "at line %d\n", __LINE__);
@@ -2919,6 +2920,137 @@ reduce_shots_to_fit_in(
 }
 
 /*
+ * Wraps a given text string to fit within a specified maximum width.
+ *
+ * Parameters:
+ *   text      - The input text string to be wrapped.
+ *   max_width - The maximum width (in pixels) the text should wrap to.
+ *   font_name - The name of the font.
+ *   font_size - The size of the font.
+ *   fcFlags   - A pointer to a gdFTStringExtra structure containing font rendering flags.
+ *
+ * Returns:
+ *   NULL if an error occurs.
+ *   The original text string if no wrapping is needed.
+ *   A new dynamically allocated text string with newlines inserted for wrapping.
+ */
+char*
+wrap_text(
+    char* text,
+    int max_width,
+    char* font_name,
+    double font_size,
+    gdFTStringExtra* fcFlags
+)
+{
+    // enable the XSHOW flag to retrieve character positioning data
+    fcFlags->flags |= gdFTEX_XSHOW;
+    char* err = gdImageStringUni(NULL, NULL, 0, font_name, font_size, 0, 0, text, fcFlags);
+    fcFlags->flags &= ~gdFTEX_XSHOW; // disable XSHOW flag after use
+    if (err) {
+        av_log(NULL, AV_LOG_WARNING, "[@%d] error opening font '%s': %s\n", __LINE__, font_name, err);
+        gdFree(fcFlags->xshow);
+        return NULL;
+    }
+    char* xshow = fcFlags->xshow;
+
+    // parse the xshow string into array
+    size_t text_byte_length = strlen(text);
+    char* xshow_token = strtok(xshow, " ");
+    double* xshow_arr = (double*) malloc(text_byte_length * sizeof(double));
+
+    size_t xshow_length = 0;
+    while (xshow_token != NULL) {
+        if (xshow_length >= text_byte_length) {
+            av_log(NULL, AV_LOG_WARNING, "[@%d] failed to wrap text: error when parsing xshow\n", __LINE__);
+            gdFree(xshow);
+            gdFree(xshow_arr);
+            return NULL;
+        }
+        xshow_arr[xshow_length++] = strtod(xshow_token, NULL);
+        xshow_token = strtok(NULL, " ");
+    }
+
+    // determine where to insert newlines for text wrapping
+    uint8_t* split = (uint8_t*) calloc(xshow_length, sizeof(uint8_t));
+    size_t split_count = 0;
+    double curr_pos = 0;
+
+    for (size_t i = 0; i < xshow_length; i++) {
+        curr_pos += xshow_arr[i];
+        curr_pos = fmax(curr_pos, 0.0);
+
+        if (curr_pos > (double) max_width) {
+            curr_pos = xshow_arr[i];
+            split[i] = 1;
+            split_count++;
+        }
+    }
+
+    char* new_text = NULL;
+
+    if (split_count == 0) {
+        // if no wrapping is needed, return the original text
+        new_text = text;
+    }
+    else {
+        // construct the new text string by inserting newlines at the marked positions
+        new_text = (char*) malloc((text_byte_length + split_count + 1) * sizeof(char));
+        new_text[text_byte_length + split_count] = '\0';
+
+        size_t idx = 0, idx_new = 0, idx_s = 0;
+        while (idx <= text_byte_length && idx_new <= text_byte_length + split_count + 1 && idx_s <= xshow_length) {
+            if (split[idx_s]) {
+                new_text[idx_new++] = '\n';
+            }
+
+            char c = text[idx];
+            if ((c & 0x80) == 0) {
+                // single byte utf-8
+                new_text[idx_new] = c;
+                idx++;
+                idx_new++;
+                if (c == '\n' || c == '\r') {
+                    continue;
+                }
+            }
+            else if ((c & 0xe0) == 0xc0) {
+                // double byte utf-8
+                memcpy(&new_text[idx_new], &text[idx], 2);
+                idx += 2;
+                idx_new += 2;
+            }
+            else if ((c & 0xf0) == 0xe0) {
+                // triple byte utf-8
+                memcpy(&new_text[idx_new], &text[idx], 3);
+                idx += 3;
+                idx_new += 3;
+            }
+            else if ((c & 0xf8) == 0xf0) {
+                // quadruple byte utf-8
+                memcpy(&new_text[idx_new], &text[idx], 4);
+                idx += 4;
+                idx_new += 4;
+            }
+            else {
+                av_log(NULL, AV_LOG_WARNING, "[@%d] failed to wrap text: unknown utf-8 format\n", __LINE__);
+                free(new_text);
+                new_text = NULL;
+                break;
+            }
+
+            idx_s++;
+        }
+    }
+
+    gdFree(xshow);
+    free(xshow_arr);
+    free(split);
+
+    return new_text;
+}
+
+/*
  * return   0 ok
  *         -1 something went wrong
  *          1 some images are missing
@@ -3418,6 +3550,15 @@ make_thumbnail(char *file)
 
     if(gb_i_info || gb_T_text)
     {
+        if (gb__info_text_wrap) {
+            int max_width = tn.img_width - 2 * (gb_g_gap + info_text_padding);
+            char* wrapped_text = wrap_text(all_text, max_width, gb_f_fontname, gb_F_info_font_size, &fcStrFlagsInfotext);
+            if (wrapped_text != NULL && wrapped_text != all_text) {
+                free(all_text);
+                all_text = wrapped_text;
+            }
+        }
+
         tn.txt_height = image_string_height(all_text, gb_f_fontname, gb_F_info_font_size, &fcStrFlagsInfotext)
             + gb_g_gap
             + 2*info_text_padding;
@@ -4671,6 +4812,7 @@ usage()
     av_log(NULL, AV_LOG_INFO, "  --filter-color-primaries=<COLOR_PRIMARIES>\n       comma-separated list of color primaries\n");
     av_log(NULL, AV_LOG_INFO, "  --tonemap[=<MODE>]\n       tonemap HDR movies; 0: off, 1-3: predefined filtergraphs\n");
     av_log(NULL, AV_LOG_INFO, "  --bounding-box[=RRGGBBAA]\n       add a bounding box under timestamps\n");
+    av_log(NULL, AV_LOG_INFO, "  --disable-text-wrap\n       disable text wrapping of the info text when it goes out of bounds\n");
     av_log(NULL, AV_LOG_INFO, "  file_or_dirX\n       name of the movie file or directory containing movie files\n\n");
 
 // no man page for windows; let them know about examples
@@ -4742,6 +4884,7 @@ int main(int argc, char *argv[])
         {"filter-color-primaries",required_argument,  0,  0 },
         {"tonemap",               optional_argument,  0,  0 },
         {"bounding-box",          optional_argument,  0,  0 },
+        {"disable-text-wrap",     no_argument,        0,  0 },
         {0,                       0,                  0,  0 }
     };
     int parse_error = 0, option_index = 0;
@@ -4831,6 +4974,10 @@ int main(int argc, char *argv[])
                         parse_error += 1;
                     }
                 }
+            }
+            else if (strcmp("disable-text-wrap", long_options[option_index].name) == 0)
+            {
+                gb__info_text_wrap = 0;
             }
             break;
         case 'a':
