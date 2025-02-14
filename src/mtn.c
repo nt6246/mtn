@@ -812,7 +812,7 @@ void dump_thumbnail(const thumbnail* const tn)
     av_log(NULL, AV_LOG_INFO, "---------------------------------------\n");
 }
 
-char* gdImageStringUni(gdImagePtr im, int *brect, int gd_color, const char *font, double ptsize, int x, int y, const char *text, gdFTStringExtra* fcFlags)
+char* gdImageStringUni(gdImagePtr im, int *brect, int gd_color, char *font, double ptsize, int x, int y, char *text, gdFTStringExtra* fcFlags)
 {
     char *err = gdImageStringFTEx(im, brect, gd_color, font, ptsize, 0.0/*angle*/, x, y, text, fcFlags);
 
@@ -1219,7 +1219,7 @@ char* file_get_content(char *filepath)
     }
     else
     {
-        av_log(NULL, AV_LOG_ERROR, "Cannot open file '%s' for reading!\n", filepath_w);
+        av_log(NULL, AV_LOG_ERROR, "Cannot open file '%s' for reading!\n", filepath);
         DEALLOC(content);
     }
 
@@ -1293,10 +1293,10 @@ int save_image(gdImagePtr ip, char *outname)
         if(fclose(fp) == 0)
             return 0;
         else
-            av_log(NULL, AV_LOG_ERROR, "\n%s: closing output image '%s' failed: %s\n", gb_argv0, outname_w, strerror(errno));
+            av_log(NULL, AV_LOG_ERROR, "\n%s: closing output image '%s' failed: %s\n", gb_argv0, outname, strerror(errno));
     }
     else
-        av_log(NULL, AV_LOG_ERROR, "\n%s: creating output image '%s' failed: %s\n", gb_argv0, outname_w, strerror(errno));
+        av_log(NULL, AV_LOG_ERROR, "\n%s: creating output image '%s' failed: %s\n", gb_argv0, outname, strerror(errno));
 
     return -1;
 }
@@ -1478,17 +1478,17 @@ int sprite_export_vtt(pSprite s)
     if (fp != NULL) {
 
         if(fwrite(s->vtt_content, sizeof(char), strlen(s->vtt_content), fp) <= 0)
-            av_log(NULL, AV_LOG_ERROR, "\n%s: error writting to file '%s': %s\n", gb_argv0, outname_w, strerror(errno));
+            av_log(NULL, AV_LOG_ERROR, "\n%s: error writting to file '%s': %s\n", gb_argv0, outname, strerror(errno));
 
         if(fclose(fp) == 0)
             return 0;
         else
-            av_log(NULL, AV_LOG_ERROR, "\n%s: closing output file '%s' failed: %s\n", gb_argv0, outname_w, strerror(errno));
+            av_log(NULL, AV_LOG_ERROR, "\n%s: closing output file '%s' failed: %s\n", gb_argv0, outname, strerror(errno));
 
         return 0;
     }
     else
-        av_log(NULL, AV_LOG_ERROR, "\n%s: creating output file '%s' failed: %s\n", gb_argv0, outname_w, strerror(errno));
+        av_log(NULL, AV_LOG_ERROR, "\n%s: creating output file '%s' failed: %s\n", gb_argv0, outname, strerror(errno));
 
     return -1;
 }
@@ -2812,7 +2812,7 @@ save_cover_image(AVFormatContext *s, char* cover_filename)
                 fclose(image_file);
             }
             else
-                av_log(NULL, AV_LOG_ERROR, "Error opening file \"%s\" for writting!\n", cover_filename_w);
+                av_log(NULL, AV_LOG_ERROR, "Error opening file \"%s\" for writting!\n", cover_filename);
         }
     }
     else
