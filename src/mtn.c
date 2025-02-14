@@ -89,14 +89,17 @@
     #ifdef _UNICODE
         #define UTF8_2_WC(wdst, src, size) MultiByteToWideChar(CP_UTF8, 0, (src), -1, (wdst), (size))
         #define WC_2_UTF8(dst, wsrc, size) WideCharToMultiByte(CP_UTF8, 0, (wsrc), -1, (dst), (size), NULL, NULL)
+        typedef wchar_t FILENAMESTR[UTF8_FILENAME_SIZE];
     #else
         #define UTF8_2_WC(dst, src, size) ((dst) = (src)) // cant be used to check required size
         #define WC_2_UTF8(dst, src, size) ((dst) = (src))
+        typedef char FILENAMESTR[FILENAME_MAX];
     #endif
 #else
     #include "fake_tchar.h"
     #define UTF8_2_WC(dst, src, size) ((dst) = (src)) // cant be used to check required size
     #define WC_2_UTF8(dst, src, size) ((dst) = (src))
+    typedef char FILENAMESTR[FILENAME_MAX];
 #endif
 
 
@@ -111,10 +114,16 @@
 #define TEXT_READ_MODE   _TEXT("rt")
 #define TEXT_WRITE_MODE   _TEXT("wt")
 #define BINARY_WRITE_MODE _TEXT("wb")
+#ifdef _UNICODE
+#define FILE_OPENING_MODE wchar_t*
+#else
+#define FILE_OPENING_MODE char*
+#endif
 #else
 #define TEXT_READ_MODE   "r"
 #define TEXT_WRITE_MODE   "w"
 #define BINARY_WRITE_MODE "w"
+#define FILE_OPENING_MODE char*
 #endif
 
 #define EDGE_PARTS 6 // # of parts used in edge detection
@@ -626,7 +635,6 @@ char *format_size_f(int64_t size)
 }
 /*
 return only the file name of the full path
-FIXME: wont work in unix if filename has '\\', e.g. path = "hello \\ world";
 */
 char *path_2_file(char *path)
 {
@@ -847,18 +855,18 @@ position can be:
 returns NULL if success, otherwise returns error message
 */
 char* image_string_box(gdImagePtr ip,
-	rgba_color	box_color,
-	int 		box_padding,
-	char*		font,
+    rgba_color  box_color,
+    int         box_padding,
+    char*       font,
     rgb_color   font_color,
-	double 		size,
-	int 		position,
-	int 		gap,
-	char*		text,
-	int 		shadow,
+    double      size,
+    int         position,
+    int         gap,
+    char*       text,
+    int         shadow,
     rgb_color   shadow_color,
-	int 		text_padding,
-	gdFTStringExtra* fcFlags
+    int         text_padding,
+    gdFTStringExtra* fcFlags
 )
 {
     int brect[8];
@@ -1169,13 +1177,31 @@ char* image_string_replace_tags(char *T_text, thumbnail* mi)
     return newtext;
 }
 
+FILE* file_open_uni(char filename[FILENAME_MAX], FILE_OPENING_MODE mode, FILENAMESTR wch_filename)
+{
+#if defined(_WIN32) && defined(_UNICODE)
+    wchar_t fname_w[FILENAME_MAX];
+    UTF8_2_WC(fname_w, filename, FILENAME_MAX);
+
+    if(wch_filename != NULL)
+        wch_filename = fname_w;
+#else
+    const char *fname_w = filename;
+
+    if(wch_filename != NULL)
+        wch_filename = filename;
+#endif
+
+    return _tfopen(fname_w, mode);
+}
+
 char* file_get_content(char *filepath)
 {
-    FILE *fp = _tfopen(filepath, TEXT_READ_MODE);
-
     char buf[100+1];
     char *content = NULL;
     size_t read = 0;
+    FILENAMESTR filepath_w = {'\0'};
+    FILE *fp = file_open_uni(filepath, TEXT_READ_MODE, filepath_w);
 
     if(fp)
     {
@@ -1193,7 +1219,7 @@ char* file_get_content(char *filepath)
     }
     else
     {
-        av_log(NULL, AV_LOG_ERROR, "Cannot open file '%s' for reading!\n", filepath);
+        av_log(NULL, AV_LOG_ERROR, "Cannot open file '%s' for reading!\n", filepath_w);
         DEALLOC(content);
     }
 
@@ -1233,14 +1259,9 @@ return 0 if image is saved
 */
 int save_image(gdImagePtr ip, char *outname)
 {
-#if defined(_WIN32) && defined(_UNICODE)
-    wchar_t outname_w[FILENAME_MAX];
-    UTF8_2_WC(outname_w, outname, FILENAME_MAX);
-#else
-    char *outname_w = outname;
-#endif
+    FILENAMESTR outname_w= { '\0'};
 
-    FILE *fp = _tfopen(outname_w, BINARY_WRITE_MODE);
+    FILE *fp = file_open_uni(outname, BINARY_WRITE_MODE, outname_w);
     if (fp != NULL) {
 
         char* image_extension = strrchr(outname, '.');
@@ -1272,10 +1293,10 @@ int save_image(gdImagePtr ip, char *outname)
         if(fclose(fp) == 0)
             return 0;
         else
-            av_log(NULL, AV_LOG_ERROR, "\n%s: closing output image '%s' failed: %s\n", gb_argv0, outname, strerror(errno));
+            av_log(NULL, AV_LOG_ERROR, "\n%s: closing output image '%s' failed: %s\n", gb_argv0, outname_w, strerror(errno));
     }
     else
-        av_log(NULL, AV_LOG_ERROR, "\n%s: creating output image '%s' failed: %s\n", gb_argv0, outname, strerror(errno));
+        av_log(NULL, AV_LOG_ERROR, "\n%s: creating output image '%s' failed: %s\n", gb_argv0, outname_w, strerror(errno));
 
     return -1;
 }
@@ -1316,6 +1337,7 @@ void thumb_new(thumbnail *ptn)
     ptn->rotation = 0;
 
     ptn->filename = NULL;
+    ptn->filenamebase = NULL;
     ptn->bytes = -1;
     ptn->size = NULL;
     ptn->duration = NULL;
@@ -1449,16 +1471,10 @@ int sprite_export_vtt(pSprite s)
         return 0;
 
     char outname[FILENAME_MAX];
+    FILENAMESTR outname_w = {'\0'};
     sprintf(outname, "%s.vtt", s->tn.filenamebase);
 
-#if defined(_WIN32) && defined(_UNICODE)
-    wchar_t outname_w[FILENAME_MAX];
-    UTF8_2_WC(outname_w, outname, FILENAME_MAX);
-#else
-    char *outname_w = outname;
-#endif
-
-    FILE *fp = _tfopen(outname_w, TEXT_WRITE_MODE);
+    FILE *fp = file_open_uni(outname, TEXT_WRITE_MODE, outname_w);
     if (fp != NULL) {
 
         if(fwrite(s->vtt_content, sizeof(char), strlen(s->vtt_content), fp) <= 0)
@@ -2763,7 +2779,7 @@ gdImagePtr rotate_gdImage(gdImagePtr ip, int angle)
  * Find and extract album art / cover image
  */
 void
-save_cover_image(AVFormatContext *s, const char* cover_filename)
+save_cover_image(AVFormatContext *s, char* cover_filename)
 {
     int cover_stream_idx = -1;
     unsigned int i;
@@ -2787,24 +2803,16 @@ save_cover_image(AVFormatContext *s, const char* cover_filename)
         {
             av_log(NULL, AV_LOG_VERBOSE, "Found cover art in stream index %d.\n", cover_stream_idx);
 
+            FILENAMESTR cover_filename_w = {'\0'};
+            FILE* image_file = file_open_uni(cover_filename, BINARY_WRITE_MODE, cover_filename_w);
 
-//TODO make one unified function for opening files under unix/windows
-#if defined(_WIN32) && defined(_UNICODE)
-    wchar_t cover_filename_w[FILENAME_MAX];
-    UTF8_2_WC(cover_filename_w, cover_filename, FILENAME_MAX);
-#else
-    const char *cover_filename_w= cover_filename;
-#endif
-
-
-            FILE* image_file = _tfopen(cover_filename_w, BINARY_WRITE_MODE);
             if(image_file)
             {
                 fwrite(pkt.data, pkt.size, 1, image_file);
                 fclose(image_file);
             }
             else
-                av_log(NULL, AV_LOG_ERROR, "Error opening file \"%s\" for writting!\n", cover_filename);
+                av_log(NULL, AV_LOG_ERROR, "Error opening file \"%s\" for writting!\n", cover_filename_w);
         }
     }
     else
@@ -3088,6 +3096,7 @@ make_thumbnail(char *file)
     tn.out_ip = NULL;
     //FILE *out_fp = NULL;
     FILE *info_fp = NULL;
+    FILENAMESTR info_filename_w = {'\0'};
     gdImagePtr ip = NULL;
     const char *codec_color_primaries = NULL;
     int filter_color_primaries_match = 1;
@@ -3190,18 +3199,10 @@ make_thumbnail(char *file)
             goto cleanup;
         }
     }
-#if defined(_WIN32) && defined(_UNICODE)
-//    wchar_t out_filename_w[FILENAME_MAX];
-//    UTF8_2_WC(out_filename_w, tn.out_filename, FILENAME_MAX);
-    wchar_t info_filename_w[FILENAME_MAX];
-    UTF8_2_WC(info_filename_w, tn.info_filename, FILENAME_MAX);
-#else
-//    char *out_filename_w = tn.out_filename;
-    char *info_filename_w = tn.info_filename;
-#endif
+
     if (NULL != gb_N_suffix) {
         av_log(NULL, AV_LOG_INFO, "\n%s: %s\n", __("Info file"), tn.info_filename);
-        info_fp = _tfopen(info_filename_w, TEXT_WRITE_MODE);
+        info_fp = file_open_uni(tn.info_filename, TEXT_WRITE_MODE, info_filename_w);
         if (NULL == info_fp) {
             av_log(NULL, AV_LOG_ERROR, "\n%s: creating info file '%s' failed: %s\n", gb_argv0, tn.info_filename, strerror(errno));
             goto cleanup;
@@ -4868,15 +4869,12 @@ usage()
 
 }
 
-#ifdef TESTS
-#include "test.h"
-#endif
-
 int main(int argc, char *argv[])
 {
-#ifdef TESTS
-#include "test.c"
-#endif
+    #ifdef TESTS
+    #include "test.h"
+    #include "test.c"
+    #endif
 
     int return_code = -1;
 
