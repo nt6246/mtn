@@ -174,6 +174,9 @@ const char* const FILTER_GRAPHS[] = {
     "zscale=transfer=linear,tonemap=clip,zscale=transfer=bt709,format=yuv420p",
     "zscale=t=linear,tonemap=tonemap=hable,zscale=p=bt709:t=bt709:m=bt709",
     "zscale=t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,tonemap=tonemap=hable,zscale=t=bt709:m=bt709:r=tv,format=yuv420p"
+    /* alternatively with desat=0 (default is 2)
+    "zscale=t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,tonemap=tonemap=hable:desat=0,zscale=t=bt709:m=bt709:r=tv,format=yuv420p"
+    */
 };
 
 
@@ -2000,23 +2003,22 @@ AVCodecContext* get_codecContext_from_codecParams(AVCodecParameters* pCodecPar)
 /*
 modified from libavformat's dump_format
 */
-void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf, AVRational sample_aspect_ratio, thumbnail *mi)
+void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char **buf, AVRational sample_aspect_ratio, thumbnail *mi)
 {
-    char sub_buf[1024] = {'\0',}; //FIXME char sub_buf[1024]
+    char *sub_buf = NULL;
     unsigned int i;
     AVCodecContext *pCodexCtx=NULL;
     char subtitles_separator[3] = {'\0',};
     KeyCounter *kc = kc_new();
 
     for(i=0; i<ic->nb_streams; i++) {
-        char codec_buf[256];
+        char codec_buf[512];    // WARNING statically allocated codec_buf
         int flags = ic->iformat->flags;
         AVStream *st = ic->streams[i];
         AVDictionaryEntry *language = av_dict_get(st->metadata, "language", NULL, 0);
 
-        if (type != st->codecpar->codec_type) {
+        if (type != st->codecpar->codec_type)
             continue;
-        }
 
         pCodexCtx = get_codecContext_from_codecParams(st->codecpar);
 
@@ -2024,9 +2026,9 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
             if (language != NULL) {
                 AVDictionaryEntry *subentry_title = av_dict_get(st->metadata, "title", NULL, 0);
                 if(subentry_title && strcasecmp(subentry_title->value, "sub"))
-                    sprintf(sub_buf + strlen(sub_buf), "%s%s (%s)", subtitles_separator, language->value, subentry_title->value);
+                    strcat_realloc(&sub_buf, "%s%s (%s)", subtitles_separator, language->value, subentry_title->value);
                 else
-                    sprintf(sub_buf + strlen(sub_buf), "%s%s", subtitles_separator, language->value);
+                    strcat_realloc(&sub_buf, "%s%s", subtitles_separator, language->value);
 
                 strcpy(subtitles_separator, ", ");
             }
@@ -2038,18 +2040,18 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
             continue;
         }
 
-        strcat(buf, "\n");
+        strcat_realloc(buf, "\n");
 
         if (gb_v_verbose > 0) {
-            sprintf(buf + strlen(buf), "%s %d", __("Stream"), i);
+            strcat_realloc(buf, "%s %d", __("Stream"), i);
             if (flags & AVFMT_SHOW_IDS) {
-                sprintf(buf + strlen(buf), "[0x%x]", st->id);
+                strcat_realloc(buf, "[0x%x]", st->id);
             }
             /*
             int g = ff_gcd(st->time_base.num, st->time_base.den);
-            sprintf(buf + strlen(buf), ", %d/%d", st->time_base.num/g, st->time_base.den/g);
+            strcat_realloc(buf, ", %d/%d", st->time_base.num/g, st->time_base.den/g);
             */
-            sprintf(buf + strlen(buf), ": ");
+            strcat_realloc(buf, ": ");
         }
 
         avcodec_string(codec_buf, sizeof(codec_buf), pCodexCtx, 0);
@@ -2080,7 +2082,7 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
             *begin = '\0';
         }
 */
-        strcat(buf, codec_buf);
+        strcat_realloc(buf, codec_buf);
 
         /* if bitrate is missing, try to search elsewhere */
         if((AVMEDIA_TYPE_AUDIO == st->codecpar->codec_type || AVMEDIA_TYPE_VIDEO == st->codecpar->codec_type )
@@ -2093,7 +2095,7 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
             {
                 char *formated_bitrate_size = format_size_f(metadata_bitrate);
                 snprintf(bitratebuff, sizeof(bitratebuff),", %s/s", formated_bitrate_size);
-                strcat(buf, bitratebuff);
+                strcat_realloc(buf, bitratebuff);
                 free(formated_bitrate_size);
             }
         }
@@ -2105,12 +2107,12 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
             if (st->r_frame_rate.den && st->r_frame_rate.num)
             {
                 _fps = av_q2d(st->r_frame_rate);
-                sprintf(buf + strlen(buf), ", %5.2f fps(r)", _fps);
+                strcat_realloc(buf, ", %5.2f fps(r)", _fps);
             }
             else
             {
                 _fps = 1/av_q2d(st->time_base);
-                sprintf(buf + strlen(buf), ", %5.2f fps(c)", _fps);
+                strcat_realloc(buf, ", %5.2f fps(c)", _fps);
             }
 
             // for the first video source
@@ -2124,38 +2126,39 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
                     &scaled_src_width, &scaled_src_height);
 
             if (scaled_src_width != st->codecpar->width || scaled_src_height != st->codecpar->height) {
-                sprintf(buf + strlen(buf), " => %dx%d", scaled_src_width, scaled_src_height);
+                strcat_realloc(buf, " => %dx%d", scaled_src_width, scaled_src_height);
             }
         }
         if (language != NULL) {
-            sprintf(buf + strlen(buf), " (%s)", language->value);
+            strcat_realloc(buf, " (%s)", language->value);
         }
     } //for
 
     {
-        if (0 < strlen(sub_buf) || 0 < kc->count)
-            sprintf(buf + strlen(buf), "\n%s: ", __("Subtitles"));
+        if ((sub_buf && 0 < strlen(sub_buf)) || 0 < kc->count)
+            strcat_realloc(buf, "\n%s: ", __("Subtitles"));
 
-        if (0 < strlen(sub_buf))
+        if (sub_buf && 0 < strlen(sub_buf))
         {
-            strcat(buf, sub_buf);
+            strcat_realloc(buf, sub_buf);
 
             if(0 < kc->count)
-                strcat(buf, ", ");
+                strcat_realloc(buf, ", ");
         }
 
         int idx;
         for(idx=0; idx < kc->count; idx++) {
             if(kc->count > 1)
-                sprintf(buf + strlen(buf), "%s (%dx)", kc->key[idx].name, kc->key[idx].count);
+                strcat_realloc(buf, "%s (%dx)", kc->key[idx].name, kc->key[idx].count);
             else
-                sprintf(buf + strlen(buf), "%s", kc->key[idx].name);
+                strcat_realloc(buf, "%s", kc->key[idx].name);
         }
     }
 
     if(pCodexCtx)
         avcodec_free_context(&pCodexCtx);
 
+    DEALLOC(sub_buf);
     kc_destroy(&kc);
 }
 
@@ -2165,7 +2168,7 @@ modified from libavformat's dump_format
 */
 char *get_stream_info(AVFormatContext *ic, char *url, int strip_path, AVRational sample_aspect_ratio, thumbnail *mi)
 {
-    static char buf[4096]; // FIXME: this is also used for all text at the top
+    char *buf = NULL;
     int duration = -1;
 
     char *file_name = url;
@@ -2176,12 +2179,12 @@ char *get_stream_info(AVFormatContext *ic, char *url, int strip_path, AVRational
     int64_t file_size = avio_size(ic->pb);
     if(mi) mi->bytes = file_size;
 
-    sprintf(buf, "%s: %s", __("File"), file_name);
+    strcat_realloc(&buf, "%s: %s", __("File"), file_name);
     if(mi && mi->filename == NULL)
         mi->filename = strdup(file_name);
 
-    /* file format
-    sprintf(buf + strlen(buf), " (%s)", ic->iformat->name);*/
+    /* file format e.g. (matroska,web)
+    strcat_realloc(&buf, " (%s)", ic->iformat->name);*/
 
     char* size_lc = __("Size");
     char* formated_size = format_size(file_size);
@@ -2190,10 +2193,10 @@ char *get_stream_info(AVFormatContext *ic, char *url, int strip_path, AVRational
 
     if(gb_H_human_filesize)
         /* File size only in MiB, GiB, ... */
-        sprintf(buf + strlen(buf), "\n%s: %s", size_lc, formated_size);
+        strcat_realloc(&buf, "\n%s: %s", size_lc, formated_size);
     else
         /* File size i bytes and MiB */
-        sprintf(buf + strlen(buf), "\n%s: %"PRId64" %s (%s)", size_lc, file_size, __("bytes"), formated_size);
+        strcat_realloc(&buf, "\n%s: %"PRId64" %s (%s)", size_lc, file_size, __("bytes"), formated_size);
 
     DEALLOC(formated_size);
 
@@ -2204,10 +2207,10 @@ char *get_stream_info(AVFormatContext *ic, char *url, int strip_path, AVRational
         secs %= 60;
         hours = mins / 60;
         mins %= 60;
-        sprintf(buf + strlen(buf), ", %s: %02d:%02d:%02d", __("duration"), hours, mins, secs);
+        strcat_realloc(&buf, ", %s: %02d:%02d:%02d", __("duration"), hours, mins, secs);
         if(mi) sprintf_realloc(&mi->duration, 0, "%02d:%02d:%02d", hours, mins, secs);
     } else {
-        sprintf(buf + strlen(buf), ", %s", __("duration: N/A"));
+        strcat_realloc(&buf, ", %s", __("duration: N/A"));
         if(mi) sprintf_realloc(&mi->duration, 0, "N/A");
     }
     /*
@@ -2215,7 +2218,7 @@ char *get_stream_info(AVFormatContext *ic, char *url, int strip_path, AVRational
         int secs, us;
         secs = ic->start_time / AV_TIME_BASE;
         us = ic->start_time % AV_TIME_BASE;
-        sprintf(buf + strlen(buf), ", start: %d.%06d", secs, (int)av_rescale(us, 1000000, AV_TIME_BASE));
+        strcat_realloc(&buf, ", start: %d.%06d", secs, (int)av_rescale(us, 1000000, AV_TIME_BASE));
     }
     */
 
@@ -2225,16 +2228,16 @@ char *get_stream_info(AVFormatContext *ic, char *url, int strip_path, AVRational
 
 
     if (ic->bit_rate) {
-        sprintf(buf + strlen(buf), ", bitrate: %"PRId64" kb/s", ic->bit_rate / 1000);
+        strcat_realloc(&buf, ", bitrate: %"PRId64" kb/s", ic->bit_rate / 1000);
     } else if (duration > 0) {
-        sprintf(buf + strlen(buf), ", avg.bitrate: %.0f kb/s", (double) file_size * 8.0 / duration / 1000);
+        strcat_realloc(&buf, ", avg.bitrate: %.0f kb/s", (double) file_size * 8.0 / duration / 1000);
     } else {
-        strcat(buf, ", bitrate: N/A");
+        strcat_realloc(&buf, "%s", ", bitrate: N/A");
     }
 
-    get_stream_info_type(ic, AVMEDIA_TYPE_AUDIO,   buf, sample_aspect_ratio, mi);
-    get_stream_info_type(ic, AVMEDIA_TYPE_VIDEO,   buf, sample_aspect_ratio, mi);
-    get_stream_info_type(ic, AVMEDIA_TYPE_SUBTITLE,buf, sample_aspect_ratio, mi);
+    get_stream_info_type(ic, AVMEDIA_TYPE_AUDIO,   &buf, sample_aspect_ratio, mi);
+    get_stream_info_type(ic, AVMEDIA_TYPE_VIDEO,   &buf, sample_aspect_ratio, mi);
+    get_stream_info_type(ic, AVMEDIA_TYPE_SUBTITLE,&buf, sample_aspect_ratio, mi);
 
     //strfmon(buf + strlen(buf), 100, "strfmon: %!i\n", avio_size(ic->pb));
     return buf;
@@ -2245,8 +2248,10 @@ void dump_format_context(AVFormatContext *p, char *url, int __attribute__((unuse
     av_log(NULL, AV_LOG_VERBOSE, "***dump_format_context, name: %s, long_name: %s\n",
         p->iformat->name, p->iformat->long_name);
 
+    char *stream_info_text = get_stream_info(p, url, 0, GB_A_RATIO, NULL);
     // dont show scaling info at this time because we dont have the proper sample_aspect_ratio
-    av_log(NULL, AV_LOG_INFO, "%s\n", get_stream_info(p, url, 0, GB_A_RATIO, NULL));
+    av_log(NULL, AV_LOG_INFO, "%s\n", stream_info_text);
+    DEALLOC(stream_info_text);
 
     av_log(NULL, AV_LOG_VERBOSE, "start_time av: %"PRId64", duration av: %"PRId64"\n",
         p->start_time, p->duration);
@@ -2579,19 +2584,19 @@ double guess_duration(AVFormatContext *pFormatCtx, int index,
     }
     avcodec_flush_buffers(pCodecCtx);
     int64_t pts;
-    ret = read_and_decode(pFormatCtx, index, pCodecCtx, pFrame, &pts, 0); // FIXME: key or not?
+    ret = read_and_decode(pFormatCtx, index, pCodecCtx, pFrame, &pts, 0); // key or not?
     if (ret <= 0) { // end of file or error
         av_log(NULL, AV_LOG_VERBOSE, "  read_and_decode during guessing duration failed\n");
         return -1;
     }
-    double start_time = (double) pFormatCtx->start_time / AV_TIME_BASE; // FIXME: can be unknown?
+    double start_time = (double) pFormatCtx->start_time / AV_TIME_BASE; // can be unknown?
     guess = calc_time(pts, pStream->time_base, start_time);
     if (guess <= 0) {
         return -1;
     }
     av_log(NULL, AV_LOG_ERROR, "  ** duration is unknown: %.2f; guessing: %.2f s.\n", duration, guess);
 
-    // seek back to 0 & flush buffer; FIXME: is 0 correct?
+    // seek back to 0 & flush buffer; NOTE: is 0 correct?
     av_seek_frame(pFormatCtx, index, 0, AVSEEK_FLAG_BYTE); // ignore errors
     avcodec_flush_buffers(pCodecCtx);
 
@@ -2626,7 +2631,7 @@ int really_seek(AVFormatContext *pFormatCtx, int index, int64_t timestamp, int f
     // so we'll interpolate accordingly.
     AVStream *pStream = pFormatCtx->streams[index];
     double start_time = (double) pFormatCtx->start_time / AV_TIME_BASE; // in seconds
-    // if start_time is negative, we ignore it; FIXME: is this ok?
+    // if start_time is negative, we ignore it; NOTE: is this ok?
     if (start_time < 0) {
         start_time = 0;
     }
@@ -3266,7 +3271,7 @@ make_thumbnail(char *file)
     }
 //    const AVCodec *pCodec = pCodecCtx->codec;
 
-    // discard frames; is this OK?? // FIXME
+    //NOTE discard frames; is this OK??
     if (gb_s_step >= 0) {
         // nonkey & bidir cause program crash with some files, e.g. tokyo 275 .
         // codec bugs???
@@ -3306,7 +3311,7 @@ make_thumbnail(char *file)
         AVRational time_base = pStream->time_base;
         av_log(NULL, AV_LOG_VERBOSE, "Initializing filtergraph\n");
 
-        char args[512];
+        char args[512]; // WARNING statically allocated buffer for filtergraph
         const AVFilter *buffersrc  = avfilter_get_by_name("buffer");
         const AVFilter *buffersink = avfilter_get_by_name("buffersink");
         AVFilterInOut* inputs = avfilter_inout_alloc();
@@ -3380,7 +3385,7 @@ make_thumbnail(char *file)
         //av_log(NULL, AV_LOG_VERBOSE, "  start_time: %.2f is more than duration: %.2f\n", start_time, duration);
         //goto cleanup;
     //}
-    // if start_time is negative, we ignore it; FIXME: is this ok?
+    // if start_time is negative, we ignore it; NOTE: is this ok?
     if (start_time < 0) {
         start_time = 0;
     }
@@ -3417,7 +3422,7 @@ make_thumbnail(char *file)
                 av_q2d(sample_aspect_ratio), av_q2d(pCodecCtx->sample_aspect_ratio), av_q2d(sample_aspect_ratio));
             av_log(NULL, AV_LOG_INFO, "      to use sample_aspect_ratio %.2f use: -a %.4f option\n",
                 av_q2d(pCodecCtx->sample_aspect_ratio), av_q2d(pCodecCtx->sample_aspect_ratio) * pCodecCtx->width / pCodecCtx->height);
-            // we'll continue with existing value. is this ok? FIXME
+            // we'll continue with existing value. NOTE: is this ok?
             // this is the same as mpc's and vlc's.
         }
         if (sample_aspect_ratio.num == 0) { // not defined
@@ -3505,7 +3510,7 @@ make_thumbnail(char *file)
         av_log(NULL, AV_LOG_INFO, "  changing width to %d to match movie's size (%dx%d)\n", tn.img_width, scaled_src_width, tn.column);
     }
 
-    char *text_stream_info = get_stream_info(pFormatCtx, file, 1, sample_aspect_ratio, &tn); // FIXME: using function's static buffer
+    char *text_stream_info = get_stream_info(pFormatCtx, file, 1, sample_aspect_ratio, &tn);
     char* image_text_untagged = NULL;
 
     if (gb_i_info)
@@ -3584,9 +3589,10 @@ make_thumbnail(char *file)
         if(gb_T_text)
             fprintf(info_fp, "%s\n", image_text_untagged);
     }
+
     DEALLOC(extra_info_text);
     DEALLOC(image_text_untagged);
-
+    DEALLOC(text_stream_info);
 
     // jpeg seems to have max size of 65500 pixels
     if (strcasecmp(image_extension, IMAGE_EXTENSION_JPG)==0 && (tn.img_width > 65500 || tn.img_height > 65500)) {
@@ -3761,7 +3767,7 @@ make_thumbnail(char *file)
         } else { // non-seek mode -- we keep decoding until we get to the next shot
             found_pts = 0;
             while (found_pts < eff_target) {
-                // we should check if it's taking too long for this loop. FIXME
+                // FIXME: we should check if it's taking too long for this loop
                 ret =  video_decode_next_frame(pFormatCtx, pCodecCtx, pFrame, video_index, &found_pts);
                 if (0 == ret) { // end of file
                     goto eof;
@@ -3946,7 +3952,7 @@ make_thumbnail(char *file)
             sprite_add_shot(sprite, ip, found_pts);
 
         /* timestamping */
-        // FIXME: this frame might not actually be at the requested position. is pts correct?
+        // NOTE: this frame might not actually be at the requested position. is pts correct?
         if (t_timestamp) { // on
             TIME_STR time_str;
             format_time(calc_time(found_pts, pStream->time_base, start_time), time_str, ':');
@@ -3982,7 +3988,7 @@ make_thumbnail(char *file)
             TIME_STR time_str;
             format_time(calc_time(found_pts, pStream->time_base, start_time), time_str, '_');
 
-            char individual_filename[UTF8_FILENAME_SIZE]; // FIXME
+            char individual_filename[UTF8_FILENAME_SIZE]; // FIXME fixed max. filename size
             strcpy(individual_filename, tn.out_filename);
             char *suffix = strstr(individual_filename, gb_o_suffix);
             assert(NULL != suffix);
