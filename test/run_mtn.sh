@@ -15,6 +15,7 @@ VID_UTF=""
 VID_HDR=""
 VID_DIR=""
 FONT_UTF=""
+VID_PGSSUB=""
 FONT="$(dirname $(readlink -f "$0"))/font.ttf"
 
 [ -v ${MTN} ] && MTN=$(which mtn)
@@ -199,3 +200,7 @@ colouredecho  "===> tonemap"
 tcdir tonemap
 run_mtn -C 95 -D0 -b2 "$VID_HDR"
 run_mtn -C 95 -D0 -b2 --tonemap -o_tonemap.jpg "$VID_HDR"
+
+colouredecho  "===> pgs_subtitles"
+tcdir pgssub
+run_mtn -C 15 -D0 -b2 -r1 -c1 "$VID_PGSSUB"

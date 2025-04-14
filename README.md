@@ -26,10 +26,12 @@ From source
 -----------
 
 ```sh
-# USER_CFLAGS is optional
-make -Csrc USER_CFLAGS=-DGB_F_FONTNAME=\\\"DefaultFont.ttf\\\"
+cd src
+make 
 make install
 ```
+
+[alternative_make]: # " make -Csrc USER_CFLAGS=-DGB_F_FONTNAME=\\\"DefaultFont.ttf\\\ "
 
 From community repository
 -----------
