@@ -1916,6 +1916,9 @@ double get_stream_rotation(AVStream *st)
 
             if(sd.type == AV_PKT_DATA_DISPLAYMATRIX) {
                 rotation = av_display_rotation_get((const int32_t *)sd.data);
+                /*                                 ^~~~~~~~~~~~~~~~~~~~~~~~ 
+                   > warning: cast from 'uint8_t *' (aka 'unsigned char *') to 'const int32_t *' (aka 'const int *') increases required alignment from 1 to 4 [-Wcast-align]  
+                   < I know, but what can we do with it? */
                 break;
             }
         }
@@ -3667,12 +3670,17 @@ make_thumbnail(char *file)
             av_log(NULL, AV_LOG_ERROR, "Info text location can only be 1, 2, 3, or 4\n");
             goto cleanup;
         }
-        char *str_ret = image_string(tn.out_ip,
-            gb_f_fontname, gb_F_info_color, gb_F_info_font_size,
-            gb_L_info_location, gb_g_gap, all_text, 0, COLOR_WHITE, info_text_padding, &fcStrFlagsInfotext);
-        if (NULL != str_ret) {
-            av_log(NULL, AV_LOG_ERROR, "  %s; font problem? see -f option\n", str_ret);
-            goto cleanup;
+
+        if(gb_i_info || gb_T_text)
+        {
+            char *err_str = image_string(tn.out_ip, gb_f_fontname, gb_F_info_color, gb_F_info_font_size,
+                                         gb_L_info_location, gb_g_gap, all_text, 0, COLOR_WHITE,
+                                         info_text_padding, &fcStrFlagsInfotext);
+            if (err_str)
+            {
+                av_log(NULL, AV_LOG_ERROR, "  %s; font problem? see -f option\n", err_str);
+                goto cleanup;
+            }
         }
     }
 

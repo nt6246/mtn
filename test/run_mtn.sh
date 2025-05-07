@@ -73,7 +73,7 @@ colouredecho "====> Minimum switches"
 tcdir minimum
 run_mtn
 
-colouredecho "====> Use full input filename (include extension)"
+colouredecho "====> Full input filename (include extension)"
 tcdir filename_extension_nosuffix
 run_mtn -X -o .jpg
 
