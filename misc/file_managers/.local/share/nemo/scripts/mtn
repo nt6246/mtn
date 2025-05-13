@@ -1,0 +1,11 @@
+#!/bin/sh
+#
+# This is an example of how to add menu item (plugin) in nemo 
+# file manager for running mtn on selected files/directories
+
+while [ $# -gt 0 ]
+do
+    mtn -W -o .jpg "$1"
+    shift
+done
+
