@@ -2,7 +2,7 @@ stages:
     - build
 
 variables:
-  MOVIE_URL: "https://$MYDOWNLOADSERVER/sample.webp"
+  MOVIE_URL: "https://$MYDOWNLOADSERVER/sample.webm"
 
 .fedora: &fc
     stage: build
@@ -69,7 +69,7 @@ static:
     - sh misc/gitlab-ci-info.sh > build_info.txt
     - apt-get update
     - apt-get install -qq git wget libc6-dev zlib1g-dev libfontconfig-dev libpng-dev libbz2-dev libjpeg-dev libwebp-dev libfreetype6-dev libbrotli-dev libzimg-dev pkg-config gcc make g++ cmake
-    - wget --no-verbose --no-clobber -O /home/sample.webp $MOVIE_URL || echo $MOVIE_URL exists
+    - wget --no-verbose --no-clobber -O /home/sample.webm $MOVIE_URL || echo $MOVIE_URL exists
     script:
     - echo cloning FFmpeg branch $STATIC_FFMPEG_BRANCH...
     - git clone --depth=500 -b $STATIC_FFMPEG_BRANCH https://github.com/FFmpeg/FFmpeg.git lib/FFmpeg
@@ -85,7 +85,7 @@ static:
     - cmake -DBUILD_SHARED_LIBS=0 -DBUILD_STATIC_LIBS=1 -DENABLE_FREETYPE=1 -DENABLE_FONTCONFIG=1 -DENABLE_JPEG=1 -DENABLE_PNG=1 -DENABLE_WEBP=1 -DENABLE_AVIF=0 -DFREETYPE_INCLUDE_DIR_ft2build=/usr/include/freetype2 -DFREETYPE_INCLUDE_DIR_freetype2=/usr/include/freetype2 .
     - make -j$CPUS
     - cd -
-    - make -Csrc ENABLE_AVIF=0 MOVIEFILE=/home/sample.webp static_test
+    - make -Csrc ENABLE_AVIF=0 MOVIEFILE=/home/sample.webm static_test
     - bin/mtn 2>&1 | head -3 | tee bin/versions.txt || true
     - pushd lib/FFmpeg
     - make distclean
@@ -116,8 +116,8 @@ win:
     before_script:
     - sh misc/gitlab-ci-info.sh > build_info.txt
     - dnf -yq install curl make mingw64-gcc.x86_64 man ghostscript
-    - curl --output /tmp/deps-win-libgd.tgz  -L https://$MYDOWNLOADSERVER/deps-libgd-$WIN_LIBGD_VER-x64.tgz
-    - curl --output /tmp/deps-win-ffmpeg.tgz -L https://$MYDOWNLOADSERVER/deps-FFmpeg-$WIN_FFMPEG_VER-x64.tgz
+    - curl --output /tmp/deps-win-libgd.tgz  -L $WIN_LIBGD_URL
+    - curl --output /tmp/deps-win-ffmpeg.tgz -L $WIN_FFMPEG_URL
     
     script:
     - mkdir -p lib/windows/bin
