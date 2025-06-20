@@ -2,7 +2,7 @@ stages:
     - build
 
 variables:
-  MOVIE_URL: "https://$MYDOWNLOADSERVER/sample.avi"
+  MOVIE_URL: "https://$MYDOWNLOADSERVER/sample.webp"
 
 .fedora: &fc
     stage: build
@@ -69,23 +69,23 @@ static:
     - sh misc/gitlab-ci-info.sh > build_info.txt
     - apt-get update
     - apt-get install -qq git wget libc6-dev zlib1g-dev libfontconfig-dev libpng-dev libbz2-dev libjpeg-dev libwebp-dev libfreetype6-dev libbrotli-dev libzimg-dev pkg-config gcc make g++ cmake
-    - wget --no-verbose --no-clobber -O /home/sample.avi $MOVIE_URL || echo $MOVIE_URL exists
+    - wget --no-verbose --no-clobber -O /home/sample.webp $MOVIE_URL || echo $MOVIE_URL exists
     script:
     - echo cloning FFmpeg branch $STATIC_FFMPEG_BRANCH...
-    - git clone --depth=100 -b $STATIC_FFMPEG_BRANCH https://github.com/FFmpeg/FFmpeg.git lib/FFmpeg
+    - git clone --depth=500 -b $STATIC_FFMPEG_BRANCH https://github.com/FFmpeg/FFmpeg.git lib/FFmpeg
     - echo cloning GD branch $STATIC_GD_BRANCH...
     - git clone --depth=1 -b $STATIC_GD_BRANCH https://github.com/libgd/libgd.git lib/libgd
     - patch -p1 < misc/gdjpeg.patch
     - CPUS=`getconf _NPROCESSORS_ONLN`
     - cd lib/FFmpeg
-    - sh -e ../../misc/configureFFmpeg.sh
+    - bash -e ../../misc/configureFFmpeg.sh
     - make -j$CPUS
     - cd -
     - cd lib/libgd
     - cmake -DBUILD_SHARED_LIBS=0 -DBUILD_STATIC_LIBS=1 -DENABLE_FREETYPE=1 -DENABLE_FONTCONFIG=1 -DENABLE_JPEG=1 -DENABLE_PNG=1 -DENABLE_WEBP=1 -DENABLE_AVIF=0 -DFREETYPE_INCLUDE_DIR_ft2build=/usr/include/freetype2 -DFREETYPE_INCLUDE_DIR_freetype2=/usr/include/freetype2 .
     - make -j$CPUS
     - cd -
-    - make -Csrc ENABLE_AVIF=0 static_test
+    - make -Csrc ENABLE_AVIF=0 MOVIEFILE=/home/sample.webp static_test
     - bin/mtn 2>&1 | head -3 | tee bin/versions.txt || true
     - pushd lib/FFmpeg
     - make distclean

@@ -66,6 +66,12 @@ sudo pacman -Sy ffmpeg gd
 zypper install ffmpeg-4-libavcodec-devel ffmpeg-4-libavdevice-devel ffmpeg-4-libavfilter-devel ffmpeg-4-libavformat-devel ffmpeg-4-libswscale-devel gd-devel freetype2-devel libjpeg62-devel make gcc 
 ```
 
+**[OpenSUSE](http://opensuse.org/)** 16, Slowroll, Tumbleweed
+
+```sh
+zypper install ffmpeg-7-libavcodec-devel ffmpeg-7-libavdevice-devel ffmpeg-7-libavfilter-devel ffmpeg-7-libavformat-devel ffmpeg-7-libswscale-devel gd-devel freetype2-devel libjpeg62-devel make gcc 
+```
+
 **[RHEL](https://www.redhat.com/en/technologies/linux-platforms/enterprise-linux/)**
 
 ```sh

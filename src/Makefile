@@ -102,7 +102,7 @@ locale: ../po/mtn.pot
 	msgmerge --update --no-fuzzy-matching --backup=none --lang=$(LANG) ../po/$(LANG).po ../po/mtn.pot
 
 test_bin:
-	$(OUT)/mtn -f ../test/font.ttf -h 50 -O /tmp /home/sample.avi
+	$(OUT)/mtn -f ../test/font.ttf -h 50 -O /tmp $(MOVIEFILE)
 	test -s /tmp/sample_s.jpg
 
 static_test: static test_bin
