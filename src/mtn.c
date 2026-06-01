@@ -376,11 +376,11 @@ void kc_destroy(KeyCounter **kc)
     if(*kc)
     {
         int i;
+
         for(i=0; i < (*kc)->count; i++)
-        {
             free((*kc)->key[i].name);
-            free((*kc)->key);
-        }
+
+        free((*kc)->key);
         free(*kc);
         *kc=NULL;
     }
@@ -905,7 +905,8 @@ int save_image(gdImagePtr ip, char *outname)
 		else
 			if(image_extension && strcasecmp(image_extension, IMAGE_EXTENSION_WEBP) == 0 )
 #ifdef MTN_WITH_WEBP
-				gdImageWebp(ip, fp);
+                /* saveAlphaFlag ignored, see https://github.com/libgd/libgd/issues/854 */
+                gdImageWebp(ip, fp);
 #else
 		{	av_log(NULL, AV_LOG_ERROR, "MTN not built with WebP support!\n");
 			return -1;
@@ -914,7 +915,8 @@ int save_image(gdImagePtr ip, char *outname)
 			else
 				if(image_extension && strcasecmp(image_extension, IMAGE_EXTENSION_AVIF) == 0 )
 #ifdef MTN_WITH_AVIF
-					gdImageAvif(ip, fp);
+                    /* saveAlphaFlag ignored, see https://github.com/libgd/libgd/issues/854 */
+                    gdImageAvif(ip, fp);
 #else
 		{
 			av_log(NULL, AV_LOG_ERROR, "MTN not built with avif support!\n");
@@ -1748,12 +1750,16 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
                 strcat(buf, ", ");
         }
 
-        int i;
-        for(i=0; i < kc->count; i++) {
-            if(kc->count > 1)
-                sprintf(buf + strlen(buf), "%s (%dx)", kc->key[i].name, kc->key[i].count);
-            else
-                sprintf(buf + strlen(buf), "%s", kc->key[i].name);
+        {
+            char sep[] = ", ";
+            int idx;
+
+            for(idx=0; idx < kc->count; idx++) {
+                if(kc->key[idx].count > 1)
+                    sprintf(buf + strlen(buf), "%s%s (%dx) ", idx>=1?sep:"", kc->key[idx].name, kc->key[idx].count);
+                else
+                    sprintf(buf + strlen(buf), "%s%s", idx>=1?sep:"", kc->key[idx].name);
+            }
         }
     }
 
