@@ -429,11 +429,11 @@ void kc_destroy(KeyCounter **kc)
     if(*kc)
     {
         int i;
+
         for(i=0; i < (*kc)->count; i++)
-        {
             free((*kc)->key[i].name);
-            free((*kc)->key);
-        }
+
+        free((*kc)->key);
         free(*kc);
         *kc=NULL;
     }
@@ -1274,6 +1274,7 @@ int save_image(gdImagePtr ip, char *outname)
         else
             if(image_extension && strcasecmp(image_extension, IMAGE_EXTENSION_WEBP) == 0 )
 #ifdef MTN_WITH_WEBP
+                /* saveAlphaFlag ignored, see https://github.com/libgd/libgd/issues/854 */
                 gdImageWebp(ip, fp);
 #else
         {   av_log(NULL, AV_LOG_ERROR, "MTN not built with WebP support!\n");
@@ -1283,6 +1284,7 @@ int save_image(gdImagePtr ip, char *outname)
             else
                 if(image_extension && strcasecmp(image_extension, IMAGE_EXTENSION_AVIF) == 0 )
 #ifdef MTN_WITH_AVIF
+                    /* saveAlphaFlag ignored, see https://github.com/libgd/libgd/issues/854 */
                     gdImageAvif(ip, fp);
 #else
         {
@@ -2149,12 +2151,16 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char **buf
                 strcat_realloc(buf, ", ");
         }
 
-        int idx;
-        for(idx=0; idx < kc->count; idx++) {
-            if(kc->count > 1)
-                strcat_realloc(buf, "%s (%dx)", kc->key[idx].name, kc->key[idx].count);
-            else
-                strcat_realloc(buf, "%s", kc->key[idx].name);
+        {
+            char sep[] = ", ";
+            int idx;
+
+            for(idx=0; idx < kc->count; idx++) {
+                if(kc->key[idx].count > 1)
+                    strcat_realloc(buf, "%s%s (%dx) ", idx>=1?sep:"", kc->key[idx].name, kc->key[idx].count);
+                else
+                    strcat_realloc(buf, "%s%s", idx>=1?sep:"", kc->key[idx].name);
+            }
         }
     }
 
