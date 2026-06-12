@@ -366,8 +366,9 @@ AVDictionary *gb__options = NULL;
 char* gb__filters = NULL;
 char* gb__filter_color_primaries = NULL;
 int gb__tonemap = 0;
-int gb__bound_box = 0; // bound-box under timestamps off by default; 1 on; 0 off
+int gb__bound_box = 0;      // bound-box under timestamps off by default; 1 on; 0 off
 int gb__info_text_wrap = 1; // wrap the info text by default; 1 on; 0 off
+int gb__version = 0;        // print version of mtn
 rgba_color gb__bound_box_color = (rgba_color) {0, 0, 0, 215}; // background color
 
 /* more global variables */
@@ -4717,7 +4718,8 @@ get_opt_for_I_arg(char *opt_arg)
     return 0;
 }
 
-int get_int_opt(char *c, int *opt, char *opt_arg, int sign)
+int
+get_int_opt(char *c, int *opt, char *opt_arg, int sign)
 {
     char *tailptr;
     int ret = strtol(opt_arg, &tailptr, 10);
@@ -4736,7 +4738,8 @@ int get_int_opt(char *c, int *opt, char *opt_arg, int sign)
     return 0;
 }
 
-int get_double_opt(char c, double *opt, char *opt_arg, double sign)
+int
+get_double_opt(char c, double *opt, char *opt_arg, double sign)
 {
     char *tailptr;
     double ret = strtod(opt_arg, &tailptr);
@@ -4755,9 +4758,10 @@ int get_double_opt(char c, double *opt, char *opt_arg, double sign)
     return 0;
 }
 
-char* mtn_identification()
+void
+mtn_identification(int loglevel)
 {
-    const char txt[] = "Movie Thumbnailer (mtn) %s\nCompiled%s with FFmpeg %s (%s %s %s %s), GD %s, WebP %s, Avif %s";
+    const char txt[] = "Movie Thumbnailer (mtn) %s\nCompiled%s with FFmpeg %s (%s %s %s %s), GD %s, WebP %s, Avif %s\n\n";
     const char* FFMPEG_IDENT = av_version_info();
     const char GD_VER[] =
        #ifdef GD_VERSION_STRING
@@ -4788,25 +4792,21 @@ char* mtn_identification()
     "n/a";
 #endif
 
-    size_t s = snprintf(NULL, 0, txt, MTN_VERSION, STATIC_MSG, FFMPEG_IDENT, LIBAVCODEC_IDENT, LIBAVFORMAT_IDENT, LIBAVUTIL_IDENT, LIBSWSCALE_IDENT, GD_VER, WEBP_IDENT, AVIF_IDENT) +1;
-    char* msg = malloc(s);
-               snprintf( msg, s, txt, MTN_VERSION, STATIC_MSG, FFMPEG_IDENT, LIBAVCODEC_IDENT, LIBAVFORMAT_IDENT, LIBAVUTIL_IDENT, LIBSWSCALE_IDENT, GD_VER, WEBP_IDENT, AVIF_IDENT);
-    return msg;
+    av_log(NULL, loglevel, txt, MTN_VERSION, STATIC_MSG, FFMPEG_IDENT, LIBAVCODEC_IDENT, LIBAVFORMAT_IDENT, LIBAVUTIL_IDENT, LIBSWSCALE_IDENT, GD_VER, WEBP_IDENT, AVIF_IDENT);
 }
 
 void
-usage()
+mtn_description()
 {
-    {
-    char *mtn_id = mtn_identification();
-    av_log(NULL, AV_LOG_INFO, "\n%s\n\n", mtn_id);
-    free(mtn_id);
-    }
-#ifndef DEBUG
     av_log(NULL, AV_LOG_INFO, "Mtn saves thumbnails of specified movie files or directories to image files.\n");
     av_log(NULL, AV_LOG_INFO, "For directories, it will recursively search inside for movie files.\n\n");
-    av_log(NULL, AV_LOG_INFO, "Usage:\n  %s [options] file_or_dir1 [file_or_dir2] ... [file_or_dirn]\n", gb_argv0);
-    av_log(NULL, AV_LOG_INFO, "Options: (and default values)\n");
+}
+
+void
+mtn_usage()
+{
+    av_log(NULL, AV_LOG_INFO, "USAGE\n  %s [options] file_or_dir1 [file_or_dir2] ... [file_or_dirn]\n\n", gb_argv0);
+    av_log(NULL, AV_LOG_INFO, "OPTIONS (and default values)\n");
     av_log(NULL, AV_LOG_INFO, "  -a aspect_ratio : override input file's display aspect ratio\n");
     av_log(NULL, AV_LOG_INFO, "  -b %.2f : skip if %% blank is higher; 0:skip all 1:skip really blank >1:off\n", GB_B_BLANK);
     av_log(NULL, AV_LOG_INFO, "  -B %.1f : omit this seconds from the beginning\n", GB_B_BEGIN);
@@ -4855,6 +4855,7 @@ usage()
     av_log(NULL, AV_LOG_INFO, "  --tonemap[=<MODE>]\n       tonemap HDR movies; 0: off, 1-3: predefined filtergraphs\n");
     av_log(NULL, AV_LOG_INFO, "  --bounding-box[=RRGGBBAA]\n       add a bounding box under timestamps\n");
     av_log(NULL, AV_LOG_INFO, "  --disable-text-wrap\n       disable text wrapping of the info text when it goes out of bounds\n");
+    av_log(NULL, AV_LOG_INFO, "  --version\n       print version of mtn\n");
     av_log(NULL, AV_LOG_INFO, "  file_or_dirX\n       name of the movie file or directory containing movie files\n\n");
 
 // no man page for windows; let them know about examples
@@ -4877,19 +4878,30 @@ usage()
     av_log(NULL, AV_LOG_INFO, "shortcut -> Properties -> Target); then drop files/dirs on the shortcut\n");
     av_log(NULL, AV_LOG_INFO, "instead.\n");
 #endif
-#ifdef _WIN32
+}
+
+void
+mtn_links()
+{
     av_log(NULL, AV_LOG_INFO, "\nMtn comes with ABSOLUTELY NO WARRANTY. this is free software, and you are\n");
     av_log(NULL, AV_LOG_INFO, "welcome to redistribute it under certain conditions; for details see file\n");
     av_log(NULL, AV_LOG_INFO, "gpl-2.0.txt.\n\n");
 
     av_log(NULL, AV_LOG_INFO, "wahibre@gmx.com\n");
     av_log(NULL, AV_LOG_INFO, "https://gitlab.com/movie_thumbnailer/mtn/wikis\n");
-#endif
-#endif
-
 }
 
-int main(int argc, char *argv[])
+void
+mtn_help()
+{
+    mtn_identification(AV_LOG_INFO);
+    mtn_description();
+    mtn_usage();
+    mtn_links();
+}
+
+int 
+main(int argc, char *argv[])
 {
     #ifdef TESTS
     #include "test.h"
@@ -4924,6 +4936,7 @@ int main(int argc, char *argv[])
         {"tonemap",               optional_argument,  0,  0 },
         {"bounding-box",          optional_argument,  0,  0 },
         {"disable-text-wrap",     no_argument,        0,  0 },
+        {"version",               no_argument,        0,  0 },
         {0,                       0,                  0,  0 }
     };
     int parse_error = 0, option_index = 0;
@@ -5018,6 +5031,11 @@ int main(int argc, char *argv[])
             {
                 gb__info_text_wrap = 0;
             }
+            else if (strcmp("version", long_options[option_index].name) == 0)
+            {
+                gb__version = 1;
+            }
+
             break;
         case 'a':
             if (0 == get_double_opt('a', &tmp_a_ratio, optarg, 1)) { // success
@@ -5176,33 +5194,37 @@ int main(int argc, char *argv[])
         }
     }
 
-    if (optind == argc) {
-        //av_log(NULL, AV_LOG_ERROR, "%s: no input files or directories specified", gb_argv0);
+    if (optind == argc && !gb__version && argc>1)
+    {
+        av_log(NULL, AV_LOG_ERROR, "%s: no input files or directories specified\n", gb_argv0);
         parse_error += 1;
     }
 
     /* check arguments */
+    if (gb__version == 1 && argc != 2) {
+        av_log(NULL, AV_LOG_ERROR, "%s: option --version cant be used with other options\n", gb_argv0);
+        parse_error += 1;
+    }
     if (gb_r_row == 0 && gb_s_step == 0) {
-        av_log(NULL, AV_LOG_ERROR, "%s: option -r and -s cant be 0 at the same time", gb_argv0);
+        av_log(NULL, AV_LOG_ERROR, "%s: option -r and -s cant be 0 at the same time\n", gb_argv0);
         parse_error += 1;
     }
     if (gb_b_blank > 1 && gb_D_edge > 0) {
-        av_log(NULL, AV_LOG_ERROR, "%s: -D requires -b arg to be less than 1", gb_argv0);
+        av_log(NULL, AV_LOG_ERROR, "%s: -D requires -b arg to be less than 1\n", gb_argv0);
         parse_error += 1;
     }
     if (gb_z_seek == 1 && gb_Z_nonseek == 1) {
-        av_log(NULL, AV_LOG_ERROR, "%s: option -z and -Z cant be used together", gb_argv0);
+        av_log(NULL, AV_LOG_ERROR, "%s: option -z and -Z cant be used together\n", gb_argv0);
         parse_error += 1;
     }
     if (gb_E_end > 0 && gb_C_cut > 0) {
-        av_log(NULL, AV_LOG_ERROR, "%s: option -C and -E cant be used together", gb_argv0);
+        av_log(NULL, AV_LOG_ERROR, "%s: option -C and -E cant be used together\n", gb_argv0);
         parse_error += 1;
     }
     if (gb__tonemap && gb__filters)    {
         parse_error += 1;
-        av_log(NULL, AV_LOG_ERROR, "%s: option --tonemap and --filters cant be used together", gb_argv0);
+        av_log(NULL, AV_LOG_ERROR, "%s: option --tonemap and --filters cant be used together\n", gb_argv0);
     }
-
 
     /* gdFTUseFontConfig(1);  => no needed, using gdImageStringFTEx */
     if(gb_v_verbose)
@@ -5240,15 +5262,28 @@ int main(int argc, char *argv[])
     if((movie_ext = strsplit(gb_e_ext, ",")) == NULL)
     {
         parse_error += 1;
-        av_log(NULL, AV_LOG_ERROR, "%s: error parsing option -e", gb_argv0);
+        av_log(NULL, AV_LOG_ERROR, "%s: error parsing option -e\n", gb_argv0);
     }
 
-
-
-    if (0 != parse_error) {
-        usage();
+    if(gb__version && argc == 2)
+    {
+        av_log(NULL, AV_LOG_INFO, "%s\n", MTN_VERSION);
+        return_code = 0;
         goto exit;
     }
+
+    if(argc == 1)
+    {
+        mtn_usage();
+        return_code = 0;
+        goto exit;
+    }
+
+
+    if (parse_error)
+        goto exit;
+
+
 
     if(gb__tonemap > 0)
     {
@@ -5306,11 +5341,7 @@ int main(int argc, char *argv[])
     }
 
     // display mtn+libraries versions for bug reporting
-    {
-    char *mtn_id = mtn_identification();
-    av_log(NULL, AV_LOG_VERBOSE, "%s\n\n", mtn_id);
-    free(mtn_id);
-    }
+    mtn_identification(AV_LOG_VERBOSE);
 
     av_log(NULL, AV_LOG_VERBOSE, "locale lang:   %s\n", setlocale(LC_ALL, ""));
     #ifdef MTN_WITH_LOCALE

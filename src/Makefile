@@ -111,7 +111,7 @@ tests: CFLAGS+=-DTESTS
 tests: run
 	
 run: build
-	$(OUT)/mtn
+	$(OUT)/mtn --version
 
 install:
 	mkdir -p $(DESTDIR)$(PREFIX)/bin/

@@ -34,6 +34,7 @@ fi
 
 if [ ! -f $FONT ]; then
     echo "cant find test font!"
+    echo "path: $FONT"
     exit 1
 fi
 
@@ -43,27 +44,31 @@ function colouredecho {
 
 function run_mtn {
     pushd $O_DIR > /dev/null
+    local OPTIONS=${OVERRIDE_OPTIONS:-$DEFAULT_OPTIONS}
+    unset OVERRIDE_OPTIONS
+
     if [ -z VIDEO ]; then
-        CMD="$MTN $MIN_SWITCHES $@"
+        CMD="$MTN $OPTIONS $@"
     else
-        CMD="$MTN $MIN_SWITCHES $@ $VIDEO"
+        CMD="$MTN $OPTIONS $@ $VIDEO"
     fi
     echo $CMD
-    $CMD 2>&1 | grep -v 'shots/s. outpu' >>out.log
+    $CMD 2>&1 | grep -v 'shots/s. outpu' >>out.log || true
     # [h264 @ 0x2eed9e80] Reinit context to 640x368, pix_fmt: yuv420p
     sed -Ei "s/^\[.*\ @\ 0x\w+\]/\[REMOVED\]/g" out.log
     popd > /dev/null
 }
 
 function tcdir {
-    ((testcasenr++))
+    #((testcasenr++))
+    testcasenr=$((testcasenr+1))
     O_DIR="${testcasenr}_$1"
     mkdir -p "$O_DIR"
 }
 
 testcasenr=0
 SCREENS_DIR=screenshots
-MIN_SWITCHES="-O . "
+DEFAULT_OPTIONS="-O . "
 
 rm -rf $SCREENS_DIR
 mkdir -p $SCREENS_DIR
@@ -187,6 +192,11 @@ run_mtn -N _info.txt -i -T '../my_mediainfo_text_file'
 rm -f my_mediainfo_text_file
 
 unset VIDEO
+
+colouredecho  "===> Version"
+tcdir version
+OVERRIDE_OPTIONS=--version
+run_mtn
 
 colouredecho  "===> file extensions"
 tcdir file_ext
