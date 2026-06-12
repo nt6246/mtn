@@ -368,7 +368,8 @@ char* gb__filter_color_primaries = NULL;
 int gb__tonemap = 0;
 int gb__bound_box = 0;      // bound-box under timestamps off by default; 1 on; 0 off
 int gb__info_text_wrap = 1; // wrap the info text by default; 1 on; 0 off
-int gb__version = 0;        // print version of mtn
+int gb__version = 0;        // show release version
+int gb__help = 0;           // show help
 rgba_color gb__bound_box_color = (rgba_color) {0, 0, 0, 215}; // background color
 
 /* more global variables */
@@ -4855,7 +4856,8 @@ mtn_usage()
     av_log(NULL, AV_LOG_INFO, "  --tonemap[=<MODE>]\n       tonemap HDR movies; 0: off, 1-3: predefined filtergraphs\n");
     av_log(NULL, AV_LOG_INFO, "  --bounding-box[=RRGGBBAA]\n       add a bounding box under timestamps\n");
     av_log(NULL, AV_LOG_INFO, "  --disable-text-wrap\n       disable text wrapping of the info text when it goes out of bounds\n");
-    av_log(NULL, AV_LOG_INFO, "  --version\n       print version of mtn\n");
+    av_log(NULL, AV_LOG_INFO, "  --version\n       print release version\n");
+    av_log(NULL, AV_LOG_INFO, "  --help       print help\n");
     av_log(NULL, AV_LOG_INFO, "  file_or_dirX\n       name of the movie file or directory containing movie files\n\n");
 
 // no man page for windows; let them know about examples
@@ -4885,7 +4887,7 @@ mtn_links()
 {
     av_log(NULL, AV_LOG_INFO, "\nMtn comes with ABSOLUTELY NO WARRANTY. this is free software, and you are\n");
     av_log(NULL, AV_LOG_INFO, "welcome to redistribute it under certain conditions; for details see file\n");
-    av_log(NULL, AV_LOG_INFO, "gpl-2.0.txt.\n\n");
+    av_log(NULL, AV_LOG_INFO, "LICENSE.\n\n");
 
     av_log(NULL, AV_LOG_INFO, "wahibre@gmx.com\n");
     av_log(NULL, AV_LOG_INFO, "https://gitlab.com/movie_thumbnailer/mtn/wikis\n");
@@ -4937,6 +4939,7 @@ main(int argc, char *argv[])
         {"bounding-box",          optional_argument,  0,  0 },
         {"disable-text-wrap",     no_argument,        0,  0 },
         {"version",               no_argument,        0,  0 },
+        {"help",                  no_argument,        0,  0 },
         {0,                       0,                  0,  0 }
     };
     int parse_error = 0, option_index = 0;
@@ -5034,6 +5037,10 @@ main(int argc, char *argv[])
             else if (strcmp("version", long_options[option_index].name) == 0)
             {
                 gb__version = 1;
+            }
+            else if (strcmp("help", long_options[option_index].name) == 0)
+            {
+                gb__help = 1;
             }
 
             break;
@@ -5194,7 +5201,7 @@ main(int argc, char *argv[])
         }
     }
 
-    if (optind == argc && !gb__version && argc>1)
+    if (optind == argc && !gb__version && !gb__help && argc>1)
     {
         av_log(NULL, AV_LOG_ERROR, "%s: no input files or directories specified\n", gb_argv0);
         parse_error += 1;
@@ -5203,6 +5210,10 @@ main(int argc, char *argv[])
     /* check arguments */
     if (gb__version == 1 && argc != 2) {
         av_log(NULL, AV_LOG_ERROR, "%s: option --version cant be used with other options\n", gb_argv0);
+        parse_error += 1;
+    }
+    if (gb__help == 1 && argc != 2) {
+        av_log(NULL, AV_LOG_ERROR, "%s: option --help cant be used with other options\n", gb_argv0);
         parse_error += 1;
     }
     if (gb_r_row == 0 && gb_s_step == 0) {
@@ -5268,6 +5279,13 @@ main(int argc, char *argv[])
     if(gb__version && argc == 2)
     {
         av_log(NULL, AV_LOG_INFO, "%s\n", MTN_VERSION);
+        return_code = 0;
+        goto exit;
+    }
+
+    if(gb__help && argc == 2)
+    {
+        mtn_help();
         return_code = 0;
         goto exit;
     }

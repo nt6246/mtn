@@ -56,6 +56,7 @@ _mtn()
 				'--tonemap[predefined filters for tonemaping frames; values 1-3]'\
 				'--bounding-box[add a bounding box under timestamps]' \
 				'--version[Print MTN version]' \
+				'--help[Print help]' \
 				'*:file:_files'
 }
 

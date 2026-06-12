@@ -45,7 +45,6 @@ function colouredecho {
 function run_mtn {
     pushd $O_DIR > /dev/null
     local OPTIONS=${OVERRIDE_OPTIONS:-$DEFAULT_OPTIONS}
-    unset OVERRIDE_OPTIONS
 
     if [ -z VIDEO ]; then
         CMD="$MTN $OPTIONS $@"
@@ -197,6 +196,13 @@ colouredecho  "===> Version"
 tcdir version
 OVERRIDE_OPTIONS=--version
 run_mtn
+
+colouredecho  "===> Help"
+tcdir help
+OVERRIDE_OPTIONS=--help
+run_mtn
+
+unset OVERRIDE_OPTIONS
 
 colouredecho  "===> file extensions"
 tcdir file_ext

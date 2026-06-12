@@ -4,7 +4,8 @@ version NEXT
 - Enable FontConfig for working with font names (-f and -F)
 - Improve option -T with placeholders
 - Turn off tonemap/filter in case of failure
-- Add --version option
+- Add --version switch
+- Add --help switch
 - Fix missing gap between info text and thumbnails
 - Fix parsing option -F when fontpath contains ':'
 - Fix extra empty stripes
