@@ -1,26 +1,27 @@
 version NEXT
-- Add lower middle and upper middle positions for timestamps
+- Add lower middle and upper middle positions for timestamps [#34]
 - Add --bounding-box option to add a bounding box under timestamps
 - Enable FontConfig for working with font names (-f and -F)
-- Improve option -T with placeholders
+- Improve option -T with placeholders [#58]
 - Turn off tonemap/filter in case of failure
 - Add --version switch
 - Add --help switch
+- Fix buffer overflow when too many subtitles are in file [#65]
 - Fix missing gap between info text and thumbnails
-- Fix parsing option -F when fontpath contains ':'
+- Fix parsing option -F when fontpath contains ':' [#61]
 - Fix extra empty stripes
 
 version 3.5.0 	2024/02/21
-- Add filtering and tonemaping (--filters, --filter-color-primaries, --tonemap)
-- Add -x switch to change output filename
-- Add -e switch to specify file extension list
-- Add support for webp and avif (-o)
-- Append "tiles info" to the info file (-N)
+- Add filtering and tonemaping (--filters, --filter-color-primaries, --tonemap) [#50]
+- Add -x switch to change output filename [#41]
+- Add -e switch to specify file extension list [#55]
+- Add support for webp and avif (-o) [#52]
+- Append "tiles info" to the info file (-N) [#49]
 - Default font is being searched using fonconfig
-- Wrong fontname turns off font rendering instead of error exiting
-- Fix folder permission for newly created directory with -O switch
-- Fix font warning if no font needed
-- Fix network init warning
+- Wrong fontname turns off font rendering instead of error exiting [#56]
+- Fix folder permission for newly created directory with -O switch [#34]
+- Fix font warning if no font needed [#43]
+- Fix network init warning [#42]
 
 version 3.4.2 	2022/02/14
 - Add --vtt switch to export previews in WebVTT format
