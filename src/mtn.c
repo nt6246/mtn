@@ -750,16 +750,12 @@ int is_key_frame(AVFrame *pFrame)
 
 char *rem_trailing_slash(char *str)
 {
-#ifdef _WIN32
-    // mingw doesn't seem to be happy about trailing '/' or '\\'
-    // strip trailing '/' or '\\' that might get added by shell filename completion for directories
     int last_index = strlen(str) - 1;
+
     // we need last '/' or '\\' for root drive "c:\"
-    while (last_index > 2 &&
-        ('/' == str[last_index] || '\\' == str[last_index])) {
+    while (last_index > 2 && ('/' == str[last_index] || '\\' == str[last_index]))
         str[last_index--] = '\0';
-    }
-#endif
+
     return str;
 }
 
