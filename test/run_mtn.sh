@@ -12,11 +12,12 @@
 export LANG=en_US
 VID_COVER=""
 VID_UTF=""
-VID_HDR=""
 VID_DIR=""
-FONT_UTF=""
+VID_HDR=""
 VID_PGSSUB=""
-FONT="$(dirname $(readlink -f "$0"))/font.ttf"
+FONT_UTF=""
+TESTDIR="$(dirname $(readlink -f "$0"))"
+FONT="$TESTDIR/font.ttf"
 
 [ -v ${MTN} ] && MTN=$(which mtn)
 
@@ -44,7 +45,7 @@ function colouredecho {
 
 function run_mtn {
     pushd $O_DIR > /dev/null
-    local OPTIONS=${OVERRIDE_OPTIONS:-$DEFAULT_OPTIONS}
+    local OPTIONS=${OVERRIDE_OPTIONS:-" -O $(pwd) "}
 
     if [ -z VIDEO ]; then
         CMD="$MTN $OPTIONS $@"
@@ -67,7 +68,6 @@ function tcdir {
 
 testcasenr=0
 SCREENS_DIR=screenshots
-DEFAULT_OPTIONS="-O . "
 
 rm -rf $SCREENS_DIR
 mkdir -p $SCREENS_DIR
@@ -189,6 +189,12 @@ tcdir text_in_file
 echo -ne "Reading text from file ... \nFilename: {{filename}} ==> {{duration}}" > my_mediainfo_text_file
 run_mtn -N _info.txt -i -T '../my_mediainfo_text_file'
 rm -f my_mediainfo_text_file
+
+colouredecho  "===> Relative path in -O"
+tcdir relative_O
+OVERRIDE_OPTIONS="-O $(pwd)/$O_DIR/output/files"
+run_mtn -c1 -r1 -N _info.txt --vtt --cover 
+
 
 unset VIDEO
 

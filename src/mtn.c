@@ -1,7 +1,7 @@
 /*  mtn - movie thumbnailer
 
     Copyright (C) 2007-2017 tuit <tuitfun@yahoo.co.th>, et al.          http://moviethumbnail.sourceforge.net/
-    Copyright (C) 2017-2024 wahibre <wahibre@gmx.com>                   https://gitlab.com/movie_thumbnailer/mtn/wikis
+    Copyright (C) 2017-2026 wahibre <wahibre@gmx.com>                   https://gitlab.com/movie_thumbnailer/mtn/wikis
 
 
     based on "Using libavformat and libavcodec" by Martin Böhme:
@@ -639,8 +639,8 @@ char *format_size_f(int64_t size)
     return buf;
 }
 /*
-return only the file name of the full path
-*/
+ * return only the file name of the full path
+ */
 char *path_2_file(char *path)
 {
     int len = strlen(path);
@@ -653,6 +653,33 @@ char *path_2_file(char *path)
         }
     }
     return path;
+}
+
+/*
+ * break filepath to dirname and filename
+ */
+void path_2_dir_and_file(char *filepath, char **dirname, char **filename)
+{
+    assert(filepath);
+    assert(*dirname);
+    assert(*filename);
+
+    char *tmppath=strdup(filepath);
+    char *last_sep = strrchr(tmppath, FOLDER_SEPARATOR[0]);
+
+    if(last_sep)
+    {
+        *last_sep = '\0';
+        strcpy(*filename, last_sep+1);
+        strcpy(*dirname, tmppath);
+    }
+    else
+    {
+        strcpy(*dirname, "");
+        strcpy(*filename, filepath);
+    }
+
+    free(tmppath);
 }
 
 /*
@@ -760,6 +787,42 @@ char *rem_trailing_slash(char *str)
 }
 
 
+/* create output directory */
+int make_dir_with_parents(char *directory)
+{
+    int ret = 0;
+
+    if (directory && !is_dir(directory))
+    {
+        char *tobe_dir = strdup(directory);
+        rem_trailing_slash(tobe_dir);
+
+        size_t dirlen = strlen(tobe_dir);
+        char *parent_dirname = (char*) malloc(dirlen*sizeof(char));
+        char *dirname = (char*) malloc(dirlen*sizeof(char));
+
+        path_2_dir_and_file(tobe_dir, &parent_dirname, &dirname);
+
+        if(strcmp(parent_dirname, "") != 0)
+            if((ret = make_dir_with_parents(parent_dirname) != 0))
+                return ret;
+
+        av_log(NULL, AV_LOG_VERBOSE, "Creating folder %s\n", tobe_dir);
+#ifdef _WIN32
+        ret = mkdir(tobe_dir);
+#else
+        ret = mkdir(tobe_dir, S_IRWXU | S_IRWXG | S_IRWXO);
+#endif
+        if (ret != 0)
+            av_log(NULL, AV_LOG_ERROR, "\n%s: creating output directory '%s' failed: %s\n", gb_argv0, dirname, strerror(errno));
+
+        free(tobe_dir);
+        free(parent_dirname);
+        free(dirname);
+    }
+    return ret;
+}
+
 int options_add_2_AVDictionary(AVDictionary **gb_dict, char *input_string)
 {
     char pair_sep[2];
@@ -801,15 +864,16 @@ gdImagePtr crop_image(gdImagePtr ip, int new_width, int new_height)
 void dump_thumbnail(const thumbnail* const tn)
 {
     av_log(NULL, AV_LOG_INFO, "-------------- Thumbnail --------------\n");
-    av_log(NULL, AV_LOG_INFO, "filenamebase \t%s\n", tn->filename);
-    av_log(NULL, AV_LOG_INFO, "out_filename \t%s\n", tn->out_filename);
-    av_log(NULL, AV_LOG_INFO, "info_filename \t%s\n", tn->info_filename);
-    av_log(NULL, AV_LOG_INFO, "cover_filename \t%s\n", tn->cover_filename);
-    av_log(NULL, AV_LOG_INFO, "out_saved    \t%d\n", tn->out_saved);
-    av_log(NULL, AV_LOG_INFO, "img_width    \t%d\n", tn->img_width);
-    av_log(NULL, AV_LOG_INFO, "img_height   \t%d\n", tn->img_height);
-    av_log(NULL, AV_LOG_INFO, "pic_width    \t%d\n", tn->pic_width);
-    av_log(NULL, AV_LOG_INFO, "pic_height   \t%d\n", tn->pic_height);
+    av_log(NULL, AV_LOG_INFO, "filename \t%s\n",        tn->filename);
+    av_log(NULL, AV_LOG_INFO, "filenamebase \t%s\n",    tn->filenamebase);
+    av_log(NULL, AV_LOG_INFO, "out_filename \t%s\n",    tn->out_filename);
+    av_log(NULL, AV_LOG_INFO, "info_filename \t%s\n",   tn->info_filename);
+    av_log(NULL, AV_LOG_INFO, "cover_filename \t%s\n",  tn->cover_filename);
+    av_log(NULL, AV_LOG_INFO, "out_saved    \t%d\n",    tn->out_saved);
+    av_log(NULL, AV_LOG_INFO, "img_width    \t%d\n",    tn->img_width);
+    av_log(NULL, AV_LOG_INFO, "img_height   \t%d\n",    tn->img_height);
+    av_log(NULL, AV_LOG_INFO, "pic_width    \t%d\n",    tn->pic_width);
+    av_log(NULL, AV_LOG_INFO, "pic_height   \t%d\n",    tn->pic_height);
     av_log(NULL, AV_LOG_INFO, "---------------------------------------\n");
 }
 
@@ -1253,6 +1317,7 @@ char *get_text_from_T_option(char *T_text)
     }
     return strdup(T_text);
 }
+
 
 
 /*
@@ -1916,8 +1981,8 @@ double get_stream_rotation(AVStream *st)
 
             if(sd.type == AV_PKT_DATA_DISPLAYMATRIX) {
                 rotation = av_display_rotation_get((const int32_t *)sd.data);
-                /*                                 ^~~~~~~~~~~~~~~~~~~~~~~~ 
-                   > warning: cast from 'uint8_t *' (aka 'unsigned char *') to 'const int32_t *' (aka 'const int *') increases required alignment from 1 to 4 [-Wcast-align]  
+                /*                                 ^~~~~~~~~~~~~~~~~~~~~~~~
+                   > warning: cast from 'uint8_t *' (aka 'unsigned char *') to 'const int32_t *' (aka 'const int *') increases required alignment from 1 to 4 [-Wcast-align]
                    < I know, but what can we do with it? */
                 break;
             }
@@ -3089,7 +3154,7 @@ make_thumbnail(char *file)
     struct timeval tstart;
     gettimeofday(&tstart, NULL);
 
-    thumbnail tn; // thumbnail data & info
+    thumbnail tn;
     thumb_new(&tn);
 
     pSprite sprite = NULL;
@@ -3125,19 +3190,59 @@ make_thumbnail(char *file)
         char *extpos;
         char *filenamestartpos = NULL;
         char filenamebase[UTF8_FILENAME_SIZE] = {'\0',};
+        size_t max_len = strlen(file)+1;
+        char *moviedirpath = malloc(max_len*sizeof(char));
+        char *moviefilename = malloc(max_len*sizeof(char));
 
-        if (gb_O_outdir != NULL && strlen(gb_O_outdir) > 0) {
-            strcpy_va(filenamebase, 3, gb_O_outdir, FOLDER_SEPARATOR, path_2_file(file));
-        } else {
-            strcpy(filenamebase, file);
+        path_2_dir_and_file(file, &moviedirpath, &moviefilename);
+
+        if (gb_O_outdir != NULL && strlen(gb_O_outdir) > 0)
+        {
+            char *workdir, *outputdir;
+
+            if((workdir = getcwd(NULL, 0)) == NULL)
+            {
+                av_log(NULL, AV_LOG_ERROR, "%s\n", strerror(errno));
+                return -1;
+            }
+
+            if(strlen(moviedirpath) > 0 && chdir(moviedirpath))
+            {
+                av_log(NULL, AV_LOG_ERROR, "%s\n", strerror(errno));
+                return -1;
+            }
+
+            if(make_dir_with_parents(gb_O_outdir))
+                return -1;
+
+            if(chdir(gb_O_outdir))
+            {
+                av_log(NULL, AV_LOG_ERROR, "%s\n", strerror(errno));
+                return -1;
+            }
+
+            if((outputdir = getcwd(NULL, 0)) == NULL)
+            {
+                av_log(NULL, AV_LOG_ERROR, "%s\n", strerror(errno));
+                return -1;
+            }
+
+            strcpy_va(filenamebase, 3, outputdir, FOLDER_SEPARATOR, moviefilename);
+
+            chdir(workdir);
+
+            DEALLOC(workdir);
+            DEALLOC(outputdir);
         }
+        else
+            strcpy(filenamebase, file);
 
         filenamestartpos=path_2_file(filenamebase);
         extpos = strrchr(filenamestartpos, '.');
 
         if (gb_X_filename_use_full != 1 && extpos != NULL)
         {
-            // remove movie extenxtion (e.g. .avi)
+            // remove movie extension (e.g. .avi)
             *extpos = '\0';
         }
 
@@ -3543,6 +3648,7 @@ make_thumbnail(char *file)
     {
         if((info_text_padding = image_string_padding(gb_f_fontname, gb_F_info_font_size, &fcStrFlagsInfotext)) == 0)
         {
+            av_log(NULL, AV_LOG_WARNING, "Cannot get the size of the font!\n");
             av_log(NULL, AV_LOG_WARNING, "Turning off info text rendering\n");
             gb_i_info = 0;
             gb_T_text = NULL;
@@ -4826,7 +4932,7 @@ mtn_usage()
     av_log(NULL, AV_LOG_INFO, "  -n : run at normal priority\n");
     av_log(NULL, AV_LOG_INFO, "  -N info_suffix : save info text to a file with suffix\n");
     av_log(NULL, AV_LOG_INFO, "  -o %s : output suffix including image extension (e.g. .jpg, .png)\n", GB_O_SUFFIX);
-    av_log(NULL, AV_LOG_INFO, "  -O directory : save output files in the specified directory\n");
+    av_log(NULL, AV_LOG_INFO, "  -O DIRECTORY : save output files in the specified DIRECTORY; If the DIRECTORY is relative path, it is relative to the movie's parent directory\n");
     av_log(NULL, AV_LOG_INFO, "  -p : pause before exiting; default on in win32\n");
     av_log(NULL, AV_LOG_INFO, "  -P : don't pause before exiting; override -p\n");
     av_log(NULL, AV_LOG_INFO, "  -q : quiet mode (print only error messages)\n");
@@ -4841,7 +4947,7 @@ mtn_usage()
     av_log(NULL, AV_LOG_INFO, "  -x CustomFileName : change output filename to CustomFileName\n");
     av_log(NULL, AV_LOG_INFO, "  -X : use full input filename (include extension)\n");
     av_log(NULL, AV_LOG_INFO, "  -z : always use seek mode\n");
-    av_log(NULL, AV_LOG_INFO, "  -Z : always use non-seek mode -- slower but more accurate timing\n");
+    av_log(NULL, AV_LOG_INFO, "  -Z : always use non-seek mode -- slower but more accurate timing\n\n");
     av_log(NULL, AV_LOG_INFO, "  --shadow[=N]\n       draw shadows beneath thumbnails with radius N pixels if N >0; Radius is calculated if N=0 or N is omitted\n");
     av_log(NULL, AV_LOG_INFO, "  --transparent\n       set background color (-k) to transparent; works with PNG image only \n");
     av_log(NULL, AV_LOG_INFO, "  --cover[=_cover.jpg]\n       extract album art if exists \n");
@@ -4853,7 +4959,7 @@ mtn_usage()
     av_log(NULL, AV_LOG_INFO, "  --bounding-box[=RRGGBBAA]\n       add a bounding box under timestamps\n");
     av_log(NULL, AV_LOG_INFO, "  --disable-text-wrap\n       disable text wrapping of the info text when it goes out of bounds\n");
     av_log(NULL, AV_LOG_INFO, "  --version\n       print release version\n");
-    av_log(NULL, AV_LOG_INFO, "  --help       print help\n");
+    av_log(NULL, AV_LOG_INFO, "  --help       print help\n\n");
     av_log(NULL, AV_LOG_INFO, "  file_or_dirX\n       name of the movie file or directory containing movie files\n\n");
 
 // no man page for windows; let them know about examples
@@ -4898,7 +5004,7 @@ mtn_help()
     mtn_links();
 }
 
-int 
+int
 main(int argc, char *argv[])
 {
     #ifdef TESTS
@@ -5321,18 +5427,6 @@ main(int argc, char *argv[])
 #endif
     }
 
-    /* create output directory */
-    if (NULL != gb_O_outdir && !is_dir(gb_O_outdir)) {
-#ifdef _WIN32
-        int ret = mkdir(gb_O_outdir);
-#else
-        int ret = mkdir(gb_O_outdir, S_IRWXU | S_IRWXG | S_IRWXO);
-#endif
-        if (0 != ret) {
-            av_log(NULL, AV_LOG_ERROR, "\n%s: creating output directory '%s' failed: %s\n", gb_argv0, gb_O_outdir, strerror(errno));
-            goto exit;
-        }
-    }
 
     /* init */
 #if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(58, 9, 100)

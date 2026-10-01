@@ -3,6 +3,7 @@ version NEXT
 - Add --bounding-box option to add a bounding box under timestamps
 - Enable FontConfig for working with font names (-f and -F)
 - Improve option -T with placeholders [#58]
+- Relative path in -O is considered relative to the movie's parent directory
 - Turn off tonemap/filter in case of failure
 - Add --version switch
 - Add --help switch
